@@ -197,7 +197,7 @@ def main():
     rand = Rand(randbytes)
 
     test_vectors = []
-    for _ in range(0, 20):
+    for i in range(0, 20):
         sender_ovk = rand.b(32)
 
         receiver_sk = SpendingKey(rand.b(32))
@@ -207,7 +207,7 @@ def main():
         pk_d = receiver_fvk.default_pkd()
         g_d = diversify_hash(d)
 
-        is_native = rand.bool()
+        is_native = i < 10
         note_type = None if is_native else bytes(Point.rand(rand))
 
         rseed = rand.b(32)

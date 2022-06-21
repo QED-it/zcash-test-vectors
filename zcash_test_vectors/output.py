@@ -221,7 +221,7 @@ def tv_rust(filename, parts, vectors):
         print('    vec![')
         for vector in vectors:
             print('        TestVector {')
-            for p in parts: tv_part_rust(p[0], vector[p[0]], p[1], 4)
+            for p in parts: tv_part_rust(p[0], vector[p[0]], p[1])
             print('        },')
         print('    ]')
         print('}')
