@@ -8,16 +8,16 @@ from .utils import to_base, to_scalar
 from ..utils import leos2bsp
 
 class OrchardNote(object):
-    def __init__(self, d, pk_d, v, rho, rseed, note_type=None):
+    def __init__(self, d, pk_d, v, note_type, rho, rseed):
         assert isinstance(v, int)
         self.d = d
         self.pk_d = pk_d
         self.v = v
+        self.note_type = note_type
         self.rho = rho
         self.rseed = rseed
         self.rcm = self.rcm()
         self.psi = self.psi()
-        self.note_type = note_type
 
     def __eq__(self, other):
         if other is None:
@@ -26,10 +26,10 @@ class OrchardNote(object):
             self.d == other.d and
             self.pk_d == other.pk_d and
             self.v == other.v and
+            self.note_type == other.note_type and
             self.rho == other.rho and
             self.rcm == other.rcm and
-            self.psi == other.psi and
-            self.note_type == other.note_type
+            self.psi == other.psi
         )
 
     def rcm(self):
@@ -41,7 +41,7 @@ class OrchardNote(object):
     def note_commitment(self):
         g_d = diversify_hash(self.d)
         note_type = self.note_type and leos2bsp(self.note_type)
-        return note_commit(self.rcm, leos2bsp(bytes(g_d)), leos2bsp(bytes(self.pk_d)), self.v, self.rho, self.psi, note_type)
+        return note_commit(self.rcm, leos2bsp(bytes(g_d)), leos2bsp(bytes(self.pk_d)), self.v, note_type, self.rho, self.psi)
 
     def note_plaintext(self, memo):
         return OrchardNotePlaintext(self.d, self.v, self.note_type, self.rseed, memo)
@@ -119,10 +119,11 @@ class OrchardNotePlaintext(object):
         d = fvk.default_d()
 
         v = 0
+        note_type = None
 
         rseed = rand.b(32)
         rho = Point.rand(rand).extract()
 
-        note = OrchardNote(d, pk_d, v, rho, rseed)
+        note = OrchardNote(d, pk_d, v, note_type, rho, rseed)
         cm = note.note_commitment()
         return derive_nullifier(fvk.nk, rho, note.psi, cm)

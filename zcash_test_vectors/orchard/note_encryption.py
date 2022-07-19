@@ -133,7 +133,7 @@ class TransmittedNoteCipherText(object):
             return None
 
         pk_d = OrchardKeyAgreement.derive_public(ivk, g_d)
-        note = OrchardNote(np.d, pk_d, np.v, rho, np.rseed, np.note_type)
+        note = OrchardNote(np.d, pk_d, np.v, np.note_type, rho, np.rseed)
 
         cm = note.note_commitment()
         if cm is None:
@@ -170,7 +170,7 @@ class TransmittedNoteCipherText(object):
         if OrchardKeyAgreement.esk(np.rseed, rho) != esk:
             return None
         g_d = diversify_hash(np.d)
-        note = OrchardNote(np.d, pk_d, np.v, rho, np.rseed, np.note_type)
+        note = OrchardNote(np.d, pk_d, np.v, np.note_type, rho, np.rseed)
 
         cm = note.note_commitment()
         if cm is None:
@@ -229,7 +229,7 @@ def main():
         cv = value_commit(rcv, Scalar(np.v))
 
         rho = np.dummy_nullifier(rand)
-        note = OrchardNote(d, pk_d, np.v, rho, rseed, note_type)
+        note = OrchardNote(d, pk_d, np.v, note_type, rho, rseed)
         cm = note.note_commitment()
 
         ne = OrchardNoteEncryption(rand)
