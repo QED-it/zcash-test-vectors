@@ -12,7 +12,7 @@ from ..rand import Rand
 
 from .generators import VALUE_COMMITMENT_VALUE_BASE, VALUE_COMMITMENT_RANDOMNESS_BASE
 from .pallas import Point, Scalar
-from .commitments import rcv_trapdoor, value_commit
+from .commitments import rcv_trapdoor, value_commit, value_commit_zsa, asset_id
 from .key_components import diversify_hash, prf_expand, FullViewingKey, SpendingKey
 from .note import OrchardNote, OrchardNotePlaintext
 from .utils import to_scalar
@@ -209,6 +209,7 @@ def main():
 
         is_native = i < 10
         asset = None if is_native else bytes(Point.rand(rand))
+        asset_descr = None if is_native else randbytes(512)
 
         rseed = rand.b(32)
 
@@ -226,7 +227,7 @@ def main():
         )
 
         rcv = rcv_trapdoor(rand)
-        cv = value_commit(rcv, Scalar(np.v))
+        cv = value_commit(rcv, Scalar(np.v)) if is_native else value_commit_zsa(rcv, Scalar(np.v), asset_id(asset, asset_descr))
 
         rho = np.dummy_nullifier(rand)
         note = OrchardNote(d, pk_d, np.v, asset, rho, rseed)

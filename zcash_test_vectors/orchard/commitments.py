@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-import sys; assert sys.version_info[0] >= 3, "Python 3 required."
+import sys;
+
+from zcash_test_vectors.orchard.asset_id import asset_id
+
+assert sys.version_info[0] >= 3, "Python 3 required."
 
 from .group_hash import group_hash
-from .pallas import Fp, Scalar
+from .pallas import Fp, Scalar, Point
 from .sinsemilla import sinsemilla_hash_to_point
 from ..utils import i2lebsp
 
@@ -17,6 +21,9 @@ def homomorphic_pedersen_commitment(rcv: Scalar, D, v: Scalar):
 
 def value_commit(rcv: Scalar, v: Scalar):
     return homomorphic_pedersen_commitment(rcv, b"z.cash:Orchard-cv", v)
+
+def value_commit_zsa(rcv: Scalar, v: Scalar, asset_id: Point):
+    return asset_id * v + group_hash(b"z.cash:Orchard-cv", b"r") * rcv
 
 def rcv_trapdoor(rand):
     return Scalar.random(rand)
@@ -86,5 +93,27 @@ def test_value_commit():
 
     assert value_commit(rcv, v) == VALUE_COMMITMENT_RANDOMNESS_BASE * rcv + VALUE_COMMITMENT_VALUE_BASE * v
 
+# Test consistency of ValueCommit^{Orchard} with precomputed generators for non-native asset
+def test_value_commit_zsa():
+    from random import Random
+    from ..rand import Rand
+    from .generators import VALUE_COMMITMENT_RANDOMNESS_BASE
+
+    rng = Random(0xabad533d)
+    def randbytes(l):
+        ret = []
+        while len(ret) < l:
+            ret.append(rng.randrange(0, 256))
+        return bytes(ret)
+    rand = Rand(randbytes)
+
+    rcv = rcv_trapdoor(rand)
+    v = Scalar(rand.u64())
+
+    asset = asset_id(randbytes(32), randbytes(512))
+
+    assert value_commit_zsa(rcv, v, asset) == VALUE_COMMITMENT_RANDOMNESS_BASE * rcv + asset * v
+
 if __name__ == '__main__':
     test_value_commit()
+    test_value_commit_zsa()
