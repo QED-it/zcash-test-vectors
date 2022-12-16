@@ -212,29 +212,28 @@ def main():
         g_d = diversify_hash(d)
 
         is_native = i < 10
-        asset = native_asset() if is_native else Point.rand(rand)
-        asset_bytes = bytes(native_asset()) if is_native else bytes(Point.rand(rand))
-
+        asset_point = native_asset() if is_native else Point.rand(rand)
+        asset_bytes_opt = None if is_native else bytes(asset_point)
         rseed = rand.b(32)
 
         memo = b'\xff' + rand.b(511)
-        if asset:
+        if not is_native:
             # Set the end of the memo to zeros
             memo = memo[:512-32] + bytes(32)
 
         np = OrchardNotePlaintext(
             d,
             rand.u64(),
-            asset_bytes,
+            asset_bytes_opt,
             rseed,
             memo
         )
 
         rcv = rcv_trapdoor(rand)
-        cv = value_commit(rcv, Scalar(np.v), asset)
+        cv = value_commit(rcv, Scalar(np.v), asset_point)
 
         rho = np.dummy_nullifier(rand)
-        note = OrchardNote(d, pk_d, np.v, asset_bytes, rho, rseed)
+        note = OrchardNote(d, pk_d, np.v, asset_bytes_opt, rho, rseed)
         cm = note.note_commitment()
 
         ne = OrchardNoteEncryption(rand)
@@ -273,7 +272,7 @@ def main():
             'ock': ne.ock,
             'op': ne.op,
             'c_out': transmitted_note_ciphertext.c_out,
-            'asset': option(asset_bytes),
+            'asset': asset_bytes_opt,
         })
 
     render_tv(
