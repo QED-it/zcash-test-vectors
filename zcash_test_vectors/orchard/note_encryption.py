@@ -209,7 +209,6 @@ def main():
 
         is_native = i < 10
         asset = None if is_native else bytes(Point.rand(rand))
-        asset_descr = None if is_native else randbytes(512)
 
         rseed = rand.b(32)
 
@@ -227,7 +226,7 @@ def main():
         )
 
         rcv = rcv_trapdoor(rand)
-        cv = value_commit(rcv, Scalar(np.v)) if is_native else value_commit_zsa(rcv, Scalar(np.v), asset_id(asset, asset_descr))
+        cv = value_commit(rcv, Scalar(np.v), asset)
 
         rho = np.dummy_nullifier(rand)
         note = OrchardNote(d, pk_d, np.v, asset, rho, rseed)

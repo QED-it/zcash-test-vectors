@@ -4,6 +4,7 @@ import sys;
 assert sys.version_info[0] >= 3, "Python 3 required."
 
 import string
+import random
 
 from ..orchard.group_hash import group_hash
 from ..output import render_args, render_tv, option
@@ -12,6 +13,36 @@ from ..output import render_args, render_tv, option
 def asset_id(key, description):
     return group_hash(b"z.cash:Orchard-cv", key + description)
 
+def get_random_unicode_bytes(max_length):
+    try:
+        get_char = unichr
+    except NameError:
+        get_char = chr
+
+    # Update this to include code point ranges to be sampled
+    include_ranges = [
+        ( 0x0021, 0x0021 ),
+        ( 0x0023, 0x0026 ),
+        ( 0x0028, 0x007E ),
+        ( 0x00A1, 0x00AC ),
+        ( 0x00AE, 0x00FF ),
+        ( 0x0100, 0x017F ),
+        ( 0x0180, 0x024F ),
+        ( 0x2C60, 0x2C7F ),
+        ( 0x16A0, 0x16F0 ),
+        ( 0x0370, 0x0377 ),
+        ( 0x037A, 0x037E ),
+        ( 0x0384, 0x038A ),
+        ( 0x038C, 0x038C ),
+    ]
+
+    alphabet = [
+        get_char(code_point) for current_range in include_ranges
+        for code_point in range(current_range[0], current_range[1] + 1)
+    ]
+    description = ''.join(random.choice(alphabet) for i in range(max_length))
+    description_bytes = description.encode("UTF-8")[:max_length].decode('UTF-8', 'ignore').encode('UTF-8')
+    return description_bytes
 
 def main():
     args = render_args()
@@ -22,11 +53,13 @@ def main():
     from random import Random
 
     rng = Random(0xabad533d)
+
     def randbytes(l):
         ret = []
         while len(ret) < l:
             ret.append(rng.randrange(0, 256))
         return bytes(ret)
+
     rand = Rand(randbytes)
 
     test_vectors = []
@@ -35,15 +68,14 @@ def main():
         fvk = FullViewingKey.from_spending_key(sk)
 
         key_bytes = bytes(fvk.ivk())
-        description = ''.join(rng.choice(string.ascii_uppercase + string.digits) for _ in range(512))
-        description_bytes = description.encode("UTF-8")
+        description_bytes = get_random_unicode_bytes(512)
         asset = asset_id(key_bytes, description_bytes)
 
         test_vectors.append({
-                'key': key_bytes,
-                'description': description_bytes,
-                'asset_id': bytes(asset),
-            })
+            'key': key_bytes,
+            'description': description_bytes,
+            'asset_id': bytes(asset),
+        })
 
     render_tv(
         args,
