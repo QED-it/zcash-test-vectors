@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-import sys; assert sys.version_info[0] >= 3, "Python 3 required."
+import sys;
+
+from zcash_test_vectors.orchard.asset_id import native_asset
+
+assert sys.version_info[0] >= 3, "Python 3 required."
 
 from chacha20poly1305 import ChaCha20Poly1305
 from hashlib import blake2b
@@ -12,7 +16,7 @@ from ..rand import Rand
 
 from .generators import VALUE_COMMITMENT_VALUE_BASE, VALUE_COMMITMENT_RANDOMNESS_BASE
 from .pallas import Point, Scalar
-from .commitments import rcv_trapdoor, value_commit, value_commit_zsa, asset_id
+from .commitments import rcv_trapdoor, value_commit
 from .key_components import diversify_hash, prf_expand, FullViewingKey, SpendingKey
 from .note import OrchardNote, OrchardNotePlaintext
 from .utils import to_scalar
@@ -208,7 +212,8 @@ def main():
         g_d = diversify_hash(d)
 
         is_native = i < 10
-        asset = None if is_native else bytes(Point.rand(rand))
+        asset = native_asset() if is_native else Point.rand(rand)
+        asset_bytes = bytes(native_asset()) if is_native else bytes(Point.rand(rand))
 
         rseed = rand.b(32)
 
@@ -220,7 +225,7 @@ def main():
         np = OrchardNotePlaintext(
             d,
             rand.u64(),
-            asset,
+            asset_bytes,
             rseed,
             memo
         )
@@ -229,7 +234,7 @@ def main():
         cv = value_commit(rcv, Scalar(np.v), asset)
 
         rho = np.dummy_nullifier(rand)
-        note = OrchardNote(d, pk_d, np.v, asset, rho, rseed)
+        note = OrchardNote(d, pk_d, np.v, asset_bytes, rho, rseed)
         cm = note.note_commitment()
 
         ne = OrchardNoteEncryption(rand)
@@ -268,7 +273,7 @@ def main():
             'ock': ne.ock,
             'op': ne.op,
             'c_out': transmitted_note_ciphertext.c_out,
-            'asset': option(asset),
+            'asset': option(asset_bytes),
         })
 
     render_tv(

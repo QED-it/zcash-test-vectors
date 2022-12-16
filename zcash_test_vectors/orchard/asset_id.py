@@ -3,12 +3,14 @@ import sys;
 
 assert sys.version_info[0] >= 3, "Python 3 required."
 
-import string
 import random
 
 from ..orchard.group_hash import group_hash
 from ..output import render_args, render_tv, option
 
+
+def native_asset():
+    return group_hash(b"z.cash:Orchard-cv", b"v")
 
 def asset_id(key, description):
     return group_hash(b"z.cash:Orchard-cv", key + description)

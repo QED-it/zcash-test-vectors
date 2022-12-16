@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys;
 
-from zcash_test_vectors.orchard.asset_id import asset_id
+from zcash_test_vectors.orchard.asset_id import asset_id, native_asset
 
 assert sys.version_info[0] >= 3, "Python 3 required."
 
@@ -18,9 +18,6 @@ L_ORCHARD_BASE = 255
 # https://zips.z.cash/protocol/nu5.pdf#concretehomomorphiccommit
 def homomorphic_pedersen_commitment(rcv: Scalar, D, v: Scalar):
     return group_hash(D, b"v") * v + group_hash(D, b"r") * rcv
-
-def native_asset():
-    return group_hash(b"z.cash:Orchard-cv", b"v")
 
 def value_commit(rcv: Scalar, v: Scalar, asset: Point):
     return asset * v + group_hash(b"z.cash:Orchard-cv", b"r") * rcv
