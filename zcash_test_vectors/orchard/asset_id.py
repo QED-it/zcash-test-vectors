@@ -15,7 +15,7 @@ def native_asset():
 def asset_id(key, description):
     return group_hash(b"z.cash:Orchard-cv", key + description)
 
-def get_random_unicode_bytes(max_length):
+def get_random_unicode_bytes(length):
     try:
         get_char = unichr
     except NameError:
@@ -42,8 +42,7 @@ def get_random_unicode_bytes(max_length):
         get_char(code_point) for current_range in include_ranges
         for code_point in range(current_range[0], current_range[1] + 1)
     ]
-    description = ''.join(random.choice(alphabet) for i in range(max_length))
-    description_bytes = description.encode("UTF-8")[:max_length].decode('UTF-8', 'ignore').encode('UTF-8')
+    description_bytes = ''.join(random.choice(alphabet) for i in range(length)).encode("UTF-8")[:length].decode('UTF-8', 'ignore').encode('UTF-8').ljust(length, b'Z')
     return description_bytes
 
 def main():
