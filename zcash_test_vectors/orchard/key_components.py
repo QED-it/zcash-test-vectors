@@ -149,14 +149,14 @@ def main():
 
         note_v = rand.u64()
         is_native = i < 5
-        asset = native_asset() if is_native else Point.rand(rand)
+        asset_base = native_asset() if is_native else Point.rand(rand)
         note_rho = Fp.random(rand)
         note_rseed = rand.b(32)
         note = OrchardNote(
             default_d,
             default_pk_d,
             note_v,
-            asset,
+            asset_base,
             note_rho,
             note_rseed,
         )
@@ -181,7 +181,7 @@ def main():
             'internal_ivk': bytes(internal.ivk()),
             'internal_ovk': internal.ovk,
             'internal_dk': internal.dk,
-            'asset': bytes(asset),
+            'asset': bytes(asset_base),
             'note_v': note_v,
             'note_rho': bytes(note_rho),
             'note_rseed': bytes(note_rseed),
