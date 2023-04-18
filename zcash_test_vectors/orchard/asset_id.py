@@ -15,7 +15,8 @@ def native_asset():
 
 
 def encode_asset_id(key, description):
-    return b"\x00" + key + description
+    version_byte = b"\x00"
+    return version_byte + key + description
 
 
 def asset_digest(encoded_asset_id):
