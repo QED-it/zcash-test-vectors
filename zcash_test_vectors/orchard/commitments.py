@@ -32,7 +32,7 @@ def sinsemilla_commit(r: Scalar, D, M):
     )
 
 # https://zips.z.cash/protocol/nu5.pdf#concretesinsemillacommit
-def sinsemilla_commit_with_personalization(r: Scalar, D_hash, D_blind, M):
+def sinsemilla_commit_with_blind_personalization(r: Scalar, D_hash, D_blind, M):
     assert isinstance(r, Scalar)
     return sinsemilla_hash_to_point(D_hash + b"-M", M) + (
         group_hash(D_blind + b"-r", b"") * r
@@ -57,7 +57,7 @@ def note_commit_orchard(rcm, g_d, pk_d, v, rho, psi):
     )
 
 def note_commit_zsa(rcm, g_d, pk_d, v, asset, rho, psi):
-    return sinsemilla_commit_with_personalization(
+    return sinsemilla_commit_with_blind_personalization(
         rcm,
         b"z.cash:ZSA-NoteCommit",
         b"z.cash:Orchard-NoteCommit",
