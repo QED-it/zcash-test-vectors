@@ -152,6 +152,16 @@ def orchard_auth_digest(tx):
 
     return digest.digest()
 
+# Issuance
+def issue_digest(tx):
+    digest = blake2b(digest_size=32, person=b'ZTxIdOrcZSAIssue')
+    return digest.digest()
+
+
+def issue_auth_digest(tx):
+    digest = blake2b(digest_size=32, person=b'ZTxIdOrcZSAIssue')
+    return digest.digest()
+
 # - Actions
 
 def orchard_actions_compact_digest(tx):
@@ -201,6 +211,7 @@ def txid_digest(tx):
     digest.update(transparent_digest(tx))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx))
+    digest.update(issue_digest(tx))
 
     return digest.digest()
 
@@ -215,6 +226,7 @@ def auth_digest(tx):
     digest.update(transparent_scripts_digest(tx))
     digest.update(sapling_auth_digest(tx))
     digest.update(orchard_auth_digest(tx))
+    digest.update(issue_auth_digest(tx))
 
     return digest.digest()
 
@@ -236,6 +248,7 @@ def signature_digest(tx, t_inputs, nHashType, txin):
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx))
+    digest.update(issue_digest(tx))
 
     return digest.digest()
 

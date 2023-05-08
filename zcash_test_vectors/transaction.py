@@ -483,6 +483,9 @@ class TransactionV5(object):
             # v^balanceOrchard is defined to be 0.
             self.valueBalanceOrchard = 0
 
+        # Issuance fields
+        self.issueBundle = None
+
         assert is_coinbase == self.is_coinbase()
 
     def version_bytes(self):
@@ -549,6 +552,10 @@ class TransactionV5(object):
             for desc in self.vActionsOrchard:
                 ret += bytes(desc.spendAuthSig)
             ret += bytes(self.bindingSigOrchard)
+
+        # Issuance Transaction Fields
+        # currently only support empty issue bundle for old tests
+        ret += write_compact_size(0)
 
         return ret
 
