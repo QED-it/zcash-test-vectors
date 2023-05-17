@@ -475,6 +475,7 @@ class TransactionV5(object):
                 # set enableSpendsOrchard = 0
                 self.flagsOrchard &= 2
             self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
+            self.burn = []
             self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
             self.proofsOrchard = rand.b(rand.u8() + 32) # Proof will always contain at least one element
             self.bindingSigOrchard = RedPallasSignature(rand)
@@ -543,6 +544,8 @@ class TransactionV5(object):
                 ret += bytes(desc) # Excludes spendAuthSig
             ret += struct.pack('B', self.flagsOrchard)
             ret += struct.pack('<Q', self.valueBalanceOrchard)
+            ret += write_compact_size(len(self.burn))
+            ret += bytes(self.burn)
             ret += bytes(self.anchorOrchard)
             ret += write_compact_size(len(self.proofsOrchard))
             ret += self.proofsOrchard
