@@ -3,6 +3,7 @@ import struct
 from .orchard.pallas import (
     Fp as PallasBase,
     Scalar as PallasScalar,
+    Point as PallasPoint
 )
 from .orchard.sinsemilla import group_hash as pallas_group_hash
 from .sapling.generators import find_group_hash, SPENDING_KEY_BASE
@@ -212,6 +213,16 @@ class JoinSplit(object):
             b''.join(self.ciphertexts)
         )
 
+class OrchardBurnItem(object):
+    def __init__(self, rand):
+        self.asset_base = PallasPoint.rand(rand)
+        self.amount = 1 + rand.u64() % MAX_MONEY
+
+    def __bytes__(self):
+        return (
+            # asset_base: [u8; 32], amount: i64
+            bytes(self.asset_base) + struct.pack('<q', self.amount)
+        )
 
 RAND_OPCODES = [
     0x00, # OP_FALSE,
@@ -423,6 +434,7 @@ class TransactionV5(object):
         have_transparent_out = (flip_coins >> 1) % 2
         have_sapling = (flip_coins >> 2) % 2
         have_orchard = (flip_coins >> 3) % 2
+        have_burn = (flip_coins >> 0) % 2
         is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
 
         # Common Transaction Fields
@@ -467,6 +479,7 @@ class TransactionV5(object):
 
         # Orchard Transaction Fields
         self.vActionsOrchard = []
+        self.burn = []
         if have_orchard:
             for _ in range(rand.u8() % 5):
                 self.vActionsOrchard.append(OrchardActionDescription(rand))
@@ -475,7 +488,11 @@ class TransactionV5(object):
                 # set enableSpendsOrchard = 0
                 self.flagsOrchard &= 2
             self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
-            self.burn = []
+
+            if have_burn:
+                for _ in range(rand.u8() % 5):
+                    self.burn.append(OrchardBurnItem(rand))
+            
             self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
             self.proofsOrchard = rand.b(rand.u8() + 32) # Proof will always contain at least one element
             self.bindingSigOrchard = RedPallasSignature(rand)
@@ -544,8 +561,7 @@ class TransactionV5(object):
                 ret += bytes(desc) # Excludes spendAuthSig
             ret += struct.pack('B', self.flagsOrchard)
             ret += struct.pack('<Q', self.valueBalanceOrchard)
-            ret += write_compact_size(len(self.burn))
-            ret += bytes(self.burn)
+            ret += write_compact_size(len(self.burn)) + b''.join(map(bytes, self.burn))
             ret += bytes(self.anchorOrchard)
             ret += write_compact_size(len(self.proofsOrchard))
             ret += self.proofsOrchard
