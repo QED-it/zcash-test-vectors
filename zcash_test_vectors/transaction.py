@@ -3,9 +3,9 @@ import struct
 from .orchard.pallas import (
     Fp as PallasBase,
     Scalar as PallasScalar,
-    Point as PallasPoint
 )
 from .orchard.sinsemilla import group_hash as pallas_group_hash
+from .orchard.asset_id import derive_random_asset_base
 from .sapling.generators import find_group_hash, SPENDING_KEY_BASE
 from .sapling.jubjub import (
     Fq,
@@ -215,7 +215,7 @@ class JoinSplit(object):
 
 class OrchardBurnItem(object):
     def __init__(self, rand):
-        self.asset_base = PallasPoint.rand(rand)
+        self.asset_base = derive_random_asset_base(rand)['asset_base']
         self.amount = 1 + rand.u64() % MAX_MONEY
 
     def __bytes__(self):

@@ -18,18 +18,17 @@ def encode_asset_id(key, description):
     version_byte = b"\x00"
     return version_byte + key + description
 
-
 def asset_digest(encoded_asset_id):
     h = blake2b(person=b"ZSA-Asset-Digest")
     h.update(encoded_asset_id)
     return h.digest()
 
 
-def zsa_value_base(asset_digest_value):
+def derive_asset_base(asset_digest_value):
     return group_hash(b"z.cash:OrchardZSA", asset_digest_value)
 
 
-def get_random_unicode_bytes(length):
+def get_random_unicode_bytes(rand, length):
     try:
         get_char = unichr
     except NameError:
@@ -56,15 +55,32 @@ def get_random_unicode_bytes(length):
         get_char(code_point) for current_range in include_ranges
         for code_point in range(current_range[0], current_range[1] + 1)
     ]
-    description_bytes = ''.join(random.choice(alphabet) for i in range(length)).encode("UTF-8")[:length].decode('UTF-8', 'ignore').encode('UTF-8').ljust(length, b'Z')
+    description_bytes = ''.join(rand.a(alphabet) for i in range(length)).encode("UTF-8")[:length].decode('UTF-8', 'ignore').encode('UTF-8').ljust(length, b'Z')
     return description_bytes
+
+
+def derive_random_asset_base(rand):
+    from zcash_test_vectors.orchard.key_components import SpendingKey
+    from zcash_test_vectors.orchard.key_components import FullViewingKey
+
+    sk = SpendingKey(rand.b(32))
+    fvk = FullViewingKey.from_spending_key(sk)
+
+    key_bytes = bytes(fvk.ivk())
+    description_bytes = get_random_unicode_bytes(rand, 512)
+    asset_base = derive_asset_base(asset_digest(encode_asset_id(key_bytes, description_bytes)))
+
+    return {
+        'key': key_bytes,
+        'description': description_bytes,
+        'asset_base': bytes(asset_base),
+    }
+
 
 def main():
     args = render_args()
 
     from zcash_test_vectors.rand import Rand
-    from zcash_test_vectors.orchard.key_components import SpendingKey
-    from zcash_test_vectors.orchard.key_components import FullViewingKey
     from random import Random
 
     rng = Random(0xabad533d)
@@ -78,19 +94,8 @@ def main():
     rand = Rand(randbytes)
 
     test_vectors = []
-    for i in range(0, 20):
-        sk = SpendingKey(rand.b(32))
-        fvk = FullViewingKey.from_spending_key(sk)
-
-        key_bytes = bytes(fvk.ivk())
-        description_bytes = get_random_unicode_bytes(512)
-        asset_base = zsa_value_base(asset_digest(encode_asset_id(key_bytes, description_bytes)))
-
-        test_vectors.append({
-            'key': key_bytes,
-            'description': description_bytes,
-            'asset_base': bytes(asset_base),
-        })
+    for _ in range(0, 20):
+        test_vectors.append(derive_random_asset_base(rand))
 
     render_tv(
         args,
