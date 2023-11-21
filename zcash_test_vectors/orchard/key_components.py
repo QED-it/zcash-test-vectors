@@ -2,7 +2,7 @@
 import sys;
 
 from zcash_test_vectors.bip340_reference import pubkey_gen
-from zcash_test_vectors.orchard.asset_id import native_asset
+from zcash_test_vectors.orchard.asset_base import native_asset
 
 assert sys.version_info[0] >= 3, "Python 3 required."
 
