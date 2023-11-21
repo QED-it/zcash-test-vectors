@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys;
 
+from zcash_test_vectors.bip340_reference import pubkey_gen
 from zcash_test_vectors.orchard.asset_id import native_asset
 
 assert sys.version_info[0] >= 3, "Python 3 required."
@@ -89,6 +90,11 @@ class ExtendedSpendingKey(SpendingKey):
         return self.__class__(I_R, I_L)
 
 
+class IssuanceAuthorizingKey(object):
+    def __init__(self, data):
+        self.data = data
+        self.ik = pubkey_gen(data)
+
 class FullViewingKey(object):
     def __init__(self, rivk, ak, nk):
         (self.rivk, self.ak, self.nk) = (rivk, ak, nk)
@@ -143,6 +149,7 @@ def main():
     test_vectors = []
     for i in range(0, 10):
         sk = SpendingKey(rand.b(32))
+        isk = IssuanceAuthorizingKey(rand.b(32))
         fvk = FullViewingKey.from_spending_key(sk)
         default_d = fvk.default_d()
         default_pk_d = fvk.default_pkd()
@@ -168,8 +175,8 @@ def main():
             'sk': sk.data,
             'ask': bytes(sk.ask),
             'ak': bytes(fvk.ak),
-            'isk': bytes(sk.isk),
-            'ik': bytes(sk.ik),
+            'isk': bytes(isk.data),
+            'ik': bytes(isk.ik),
             'nk': bytes(fvk.nk),
             'rivk': bytes(fvk.rivk),
             'ivk': bytes(fvk.ivk()),
