@@ -19,6 +19,7 @@ from ..utils import i2leosp, i2lebsp, lebs2osp
 from .utils import to_base, to_scalar
 from ..output import render_args, render_tv
 
+
 #
 # PRFs and hashes
 #
@@ -29,13 +30,16 @@ def diversify_hash(d):
         P = group_hash(b'z.cash:Orchard-gd', b'')
     return P
 
+
 def prf_nf_orchard(nk, rho):
     return poseidon.hash(nk, rho)
+
 
 def derive_nullifier(nk, rho: Fp, psi: Fp, cm):
     scalar = prf_nf_orchard(nk, rho) + psi  # addition mod p
     point = NULLIFIER_K_BASE * Scalar(scalar.s) + cm
     return point.extract()
+
 
 #
 # Key components
@@ -45,10 +49,10 @@ class SpendingKey(object):
     def __init__(self, data):
         self.data = data
 
-        self.ask  = to_scalar(prf_expand(self.data, b'\x06'))
-        self.nk   = to_base(prf_expand(self.data, b'\x07'))
+        self.ask = to_scalar(prf_expand(self.data, b'\x06'))
+        self.nk = to_base(prf_expand(self.data, b'\x07'))
         self.rivk = to_scalar(prf_expand(self.data, b'\x08'))
-        self.isk  = to_scalar(prf_expand(self.data, b'\x0a'))
+        self.isk = to_scalar(prf_expand(self.data, b'\x0a'))
         if self.ask == Scalar.ZERO:
             raise ValueError("invalid spending key")
         if self.isk == Scalar.ZERO:
@@ -76,7 +80,7 @@ class ExtendedSpendingKey(SpendingKey):
     def master(cls, S):
         digest = blake2b(person=b'ZcashIP32Orchard')
         digest.update(S)
-        I   = digest.digest()
+        I = digest.digest()
         I_L = I[:32]
         I_R = I[32:]
         return cls(I_R, I_L)
@@ -84,7 +88,7 @@ class ExtendedSpendingKey(SpendingKey):
     def child(self, i):
         assert 0x80000000 <= i and i <= 0xFFFFFFFF
 
-        I   = prf_expand(self.chaincode, b'\x81' + self.data + i2leosp(32, i))
+        I = prf_expand(self.chaincode, b'\x81' + self.data + i2leosp(32, i))
         I_L = I[:32]
         I_R = I[32:]
         return self.__class__(I_R, I_L)
@@ -94,6 +98,7 @@ class IssuanceAuthorizingKey(object):
     def __init__(self, data):
         self.data = data
         self.ik = pubkey_gen(data)
+
 
 class FullViewingKey(object):
     def __init__(self, rivk, ak, nk):
@@ -139,11 +144,13 @@ def main():
     from ..rand import Rand
 
     rng = Random(0xabad533d)
+
     def randbytes(l):
         ret = []
         while len(ret) < l:
             ret.append(rng.randrange(0, 256))
         return bytes(ret)
+
     rand = Rand(randbytes)
 
     test_vectors = []

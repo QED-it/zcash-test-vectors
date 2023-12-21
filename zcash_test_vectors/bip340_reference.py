@@ -1,3 +1,5 @@
+# This file has been copied from https://github.com/bitcoin/bips/blob/master/bip-0340/reference.py
+
 from typing import Tuple, Optional, Any
 import hashlib
 import binascii
