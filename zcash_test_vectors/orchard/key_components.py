@@ -96,7 +96,7 @@ class ExtendedSpendingKey(SpendingKey):
 
 class IssuanceAuthorizingKey(object):
     def __init__(self, data):
-        self.data = data
+        self.isk = data
         self.ik = pubkey_gen(data)
 
 
@@ -182,7 +182,7 @@ def main():
             'sk': sk.data,
             'ask': bytes(sk.ask),
             'ak': bytes(fvk.ak),
-            'isk': bytes(isk.data),
+            'isk': bytes(isk.isk),
             'ik': bytes(isk.ik),
             'nk': bytes(fvk.nk),
             'rivk': bytes(fvk.rivk),
