@@ -79,15 +79,19 @@ def lift_x(x: int) -> Optional[Point]:
         return None
     return (x, y if y & 1 == 0 else p-y)
 
+
 def int_from_bytes(b: bytes) -> int:
     return int.from_bytes(b, byteorder="big")
+
 
 def hash_sha256(b: bytes) -> bytes:
     return hashlib.sha256(b).digest()
 
+
 def has_even_y(P: Point) -> bool:
     assert not is_infinite(P)
     return y(P) % 2 == 0
+
 
 def pubkey_gen(seckey: bytes) -> bytes:
     d0 = int_from_bytes(seckey)
@@ -96,6 +100,7 @@ def pubkey_gen(seckey: bytes) -> bytes:
     P = point_mul(G, d0)
     assert P is not None
     return bytes_from_point(P)
+
 
 def schnorr_sign(msg: bytes, seckey: bytes, aux_rand: bytes) -> bytes:
     d0 = int_from_bytes(seckey)
@@ -120,6 +125,7 @@ def schnorr_sign(msg: bytes, seckey: bytes, aux_rand: bytes) -> bytes:
         raise RuntimeError('The created signature does not pass verification.')
     return sig
 
+
 def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     if len(pubkey) != 32:
         raise ValueError('The public key must be a 32-byte array.')
@@ -139,12 +145,14 @@ def schnorr_verify(msg: bytes, pubkey: bytes, sig: bytes) -> bool:
     debug_print_vars()
     return True
 
+
 #
 # The following code is only used to verify the test vectors.
 #
 import csv
 import os
 import sys
+
 
 def test_vectors() -> bool:
     all_passed = True
@@ -199,6 +207,7 @@ def test_vectors() -> bool:
 # The following code is only used for debugging
 #
 import inspect
+
 
 def pretty(v: Any) -> Any:
     if isinstance(v, bytes):
