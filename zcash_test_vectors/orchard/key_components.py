@@ -52,22 +52,14 @@ class SpendingKey(object):
         self.ask = to_scalar(prf_expand(self.data, b'\x06'))
         self.nk = to_base(prf_expand(self.data, b'\x07'))
         self.rivk = to_scalar(prf_expand(self.data, b'\x08'))
-        self.isk = to_scalar(prf_expand(self.data, b'\x0a'))
         if self.ask == Scalar.ZERO:
             raise ValueError("invalid spending key")
-        if self.isk == Scalar.ZERO:
-            raise ValueError("invalid issuer key")
 
         self.akP = SPENDING_KEY_BASE * self.ask
         if bytes(self.akP)[-1] & 0x80 != 0:
             self.ask = -self.ask
 
-        self.ikP = SPENDING_KEY_BASE * self.isk
-        if bytes(self.ikP)[-1] & 0x80 != 0:
-            self.isk = -self.isk
-
         self.ak = self.akP.extract()
-        self.ik = self.ikP.extract()
         assert commit_ivk(self.rivk, self.ak, self.nk) is not None
 
 
@@ -97,7 +89,11 @@ class ExtendedSpendingKey(SpendingKey):
 class IssuanceAuthorizingKey(object):
     def __init__(self, data):
         self.isk = data
-        self.ik = pubkey_gen(data)
+
+        if self.isk == b'\0' * 32:
+            raise ValueError("invalid issuer key")
+
+        self.ik = pubkey_gen(self.isk)
 
 
 class FullViewingKey(object):
