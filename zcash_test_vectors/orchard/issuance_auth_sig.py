@@ -52,7 +52,7 @@ def main():
 
     render_tv(
         args,
-        'zsa_issuance_auth_sig',
+        'issuance_auth_sig',
         (
             ('isk', '[u8; 32]'),
             ('ik', '[u8; 32]'),

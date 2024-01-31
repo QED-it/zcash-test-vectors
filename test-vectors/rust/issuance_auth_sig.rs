@@ -1,4 +1,4 @@
-// From https://github.com/zcash-hackworks/zcash-test-vectors/ (zsa_issuance_auth_sig)
+// From https://github.com/QED-it/zcash-test-vectors/ (issuance_auth_sig)
 
 pub(crate) struct TestVector {
     pub(crate) isk: [u8; 32],
