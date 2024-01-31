@@ -86,7 +86,9 @@ class ExtendedSpendingKey(SpendingKey):
         return self.__class__(I_R, I_L)
 
 
-class IssuanceAuthorizingKey(object):
+# The IssuanceKeys class contains the two issuance keys, isk and ik.
+# It is initialized with data that is the byte representation of isk, and it generates ik appropriately.
+class IssuanceKeys(object):
     def __init__(self, data):
         self.isk = data
 
