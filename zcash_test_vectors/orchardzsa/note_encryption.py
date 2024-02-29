@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import sys;
 
-from ..orchardzsa.asset_base import native_asset
+from .asset_base import native_asset
 
 assert sys.version_info[0] >= 3, "Python 3 required."
 
@@ -12,11 +12,11 @@ from ..transaction import MAX_MONEY
 from ..output import render_args, render_tv
 from ..rand import Rand
 
-from .pallas import Point, Scalar
+from ..orchard.pallas import Point, Scalar
 from .commitments import rcv_trapdoor, value_commit
 from .key_components import diversify_hash, prf_expand, FullViewingKey, SpendingKey
 from .note import OrchardNote, OrchardNotePlaintext
-from .utils import to_scalar
+from ..orchard.utils import to_scalar
 
 # https://zips.z.cash/protocol/nu5.pdf#concreteorchardkdf
 def kdf_orchard(shared_secret, ephemeral_key):

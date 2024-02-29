@@ -11,12 +11,12 @@ from hashlib import blake2b
 from ..ff1 import ff1_aes256_encrypt
 from ..sapling.key_components import prf_expand
 
-from .generators import NULLIFIER_K_BASE, SPENDING_KEY_BASE, group_hash
-from .pallas import Fp, Scalar, Point
-from . import poseidon
+from ..orchard.generators import NULLIFIER_K_BASE, SPENDING_KEY_BASE, group_hash
+from ..orchard.pallas import Fp, Scalar, Point
+from ..orchard import poseidon
 from .commitments import commit_ivk
 from ..utils import i2leosp, i2lebsp, lebs2osp
-from .utils import to_base, to_scalar
+from ..orchard.utils import to_base, to_scalar
 from ..output import render_args, render_tv
 
 

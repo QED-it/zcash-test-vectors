@@ -1,10 +1,10 @@
 import struct
 
-from ..orchardzsa.asset_base import native_asset
+from .asset_base import native_asset
 from .commitments import note_commit
 from .key_components import diversify_hash, prf_expand, derive_nullifier, FullViewingKey, SpendingKey
-from .pallas import Point, Scalar
-from .utils import to_base, to_scalar
+from ..orchard.pallas import Point, Scalar
+from ..orchard.utils import to_base, to_scalar
 from ..utils import leos2bsp
 
 

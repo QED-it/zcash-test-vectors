@@ -63,9 +63,7 @@ def main():
     args = render_args()
 
     from zcash_test_vectors.rand import Rand
-    from zcash_test_vectors.orchard.key_components import SpendingKey
-    from zcash_test_vectors.orchard.key_components import FullViewingKey
-    from zcash_test_vectors.orchard.key_components import IssuanceAuthorizingKey
+    from zcash_test_vectors.orchardzsa.key_components import IssuanceKeys
 
     from random import Random
 
@@ -81,9 +79,7 @@ def main():
 
     test_vectors = []
     for i in range(0, 20):
-        sk = SpendingKey(rand.b(32))
-        fvk = FullViewingKey.from_spending_key(sk)
-        isk = IssuanceAuthorizingKey(rand.b(32))
+        isk = IssuanceKeys(rand.b(32))
 
         key_bytes = bytes(isk.ik)
         description_bytes = get_random_unicode_bytes(512)

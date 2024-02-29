@@ -3,10 +3,10 @@ import sys
 
 assert sys.version_info[0] >= 3, "Python 3 required."
 
-from .group_hash import group_hash
-from .pallas import Fp, Scalar, Point
-from .sinsemilla import sinsemilla_hash_to_point
-from ..orchardzsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, native_asset
+from ..orchard.group_hash import group_hash
+from ..orchard.pallas import Fp, Scalar, Point
+from ..orchard.sinsemilla import sinsemilla_hash_to_point
+from .asset_base import zsa_value_base, asset_digest, encode_asset_id, native_asset
 from ..utils import i2lebsp, leos2bsp
 
 # Commitment schemes used in Orchard https://zips.z.cash/protocol/nu5.pdf#concretecommit
@@ -82,7 +82,7 @@ def rivk_trapdoor(rand):
 def test_value_commit():
     from random import Random
     from ..rand import Rand
-    from .generators import VALUE_COMMITMENT_RANDOMNESS_BASE
+    from ..orchard.generators import VALUE_COMMITMENT_RANDOMNESS_BASE
 
     rng = Random(0xabad533d)
     def randbytes(l):
