@@ -2,13 +2,13 @@ import struct
 
 from .asset_base import native_asset
 from .commitments import note_commit
-from .key_components import diversify_hash, prf_expand, derive_nullifier, FullViewingKey, SpendingKey
+from ..orchard.key_components import diversify_hash, derive_nullifier, prf_expand, FullViewingKey, SpendingKey
 from ..orchard.pallas import Point, Scalar
 from ..orchard.utils import to_base, to_scalar
 from ..utils import leos2bsp
 
 
-class OrchardNote(object):
+class OrchardZSANote(object):
     def __init__(self, d, pk_d, v, asset, rho, rseed):
         assert isinstance(v, int)
         self.d = d
@@ -45,12 +45,12 @@ class OrchardNote(object):
         return note_commit(self.rcm, leos2bsp(bytes(g_d)), leos2bsp(bytes(self.pk_d)), self.v, leos2bsp(bytes(self.asset)), self.rho, self.psi)
 
     def note_plaintext(self, memo):
-        return OrchardNotePlaintext(self.d, self.v, self.rseed, self.asset, memo)
+        return OrchardZSANotePlaintext(self.d, self.v, self.rseed, self.asset, memo)
 
 # https://zips.z.cash/protocol/nu5.pdf#notept
-class OrchardNotePlaintext(object):
+class OrchardZSANotePlaintext(object):
     def __init__(self, d, v, rseed, asset, memo):
-        self.leadbyte = bytes.fromhex('03' if asset else '02')
+        self.leadbyte = bytes.fromhex('03')
         self.d = d
         self.v = v
         self.asset = asset
@@ -61,24 +61,24 @@ class OrchardNotePlaintext(object):
     def from_bytes(buf):
         leadbyte = buf[0]
         if leadbyte == 2:
-            return OrchardNotePlaintext._from_bytes_orchard(buf)
+            return OrchardZSANotePlaintext._from_bytes_orchard(buf)
         if leadbyte == 3:
-            return OrchardNotePlaintext._from_bytes_zsa(buf)
+            return OrchardZSANotePlaintext._from_bytes_zsa(buf)
         raise "invalid lead byte"
 
     @staticmethod
     def _from_bytes_orchard(buf):
-        return OrchardNotePlaintext(
+        return OrchardZSANotePlaintext(
             buf[1:12],    # d
             struct.unpack('<Q', buf[12:20])[0],  # v
             buf[20:52],   # rseed
-            None,         # asset
+            native_asset(),         # asset
             buf[52:564],  # memo
         )
 
     @staticmethod
     def _from_bytes_zsa(buf):
-        return OrchardNotePlaintext(
+        return OrchardZSANotePlaintext(
             buf[1:12],   # d
             struct.unpack('<Q', buf[12:20])[0],  # v
             buf[20:52],  # rseed
@@ -87,21 +87,6 @@ class OrchardNotePlaintext(object):
         )
 
     def __bytes__(self):
-        if self.asset:
-            return self._to_bytes_zsa()
-        else:
-            return self._to_bytes_orchard()
-
-    def _to_bytes_orchard(self):
-        return (
-            self.leadbyte +
-            self.d +
-            struct.pack('<Q', self.v) +
-            self.rseed +
-            self.memo
-        )
-
-    def _to_bytes_zsa(self):
         return (
             self.leadbyte +
             self.d +
@@ -121,6 +106,6 @@ class OrchardNotePlaintext(object):
         rseed = rand.b(32)
         rho = Point.rand(rand).extract()
 
-        note = OrchardNote(d, pk_d, v, native_asset(), rho, rseed)
+        note = OrchardZSANote(d, pk_d, v, native_asset(), rho, rseed)
         cm = note.note_commitment()
         return derive_nullifier(fvk.nk, rho, note.psi, cm)

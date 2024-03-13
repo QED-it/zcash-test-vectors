@@ -1,90 +1,19 @@
 #!/usr/bin/env python3
 import sys;
 
-from zcash_test_vectors.bip340_reference import pubkey_gen
-from zcash_test_vectors.orchardzsa.asset_base import native_asset
-
 assert sys.version_info[0] >= 3, "Python 3 required."
 
-from hashlib import blake2b
-
-from ..ff1 import ff1_aes256_encrypt
-from ..sapling.key_components import prf_expand
-
-from ..orchard.generators import NULLIFIER_K_BASE, SPENDING_KEY_BASE, group_hash
-from ..orchard.pallas import Fp, Scalar, Point
-from ..orchard import poseidon
-from .commitments import commit_ivk
-from ..utils import i2leosp, i2lebsp, lebs2osp
-from ..orchard.utils import to_base, to_scalar
+from ..orchard.pallas import Fp, Point
+from ..orchard.key_components import derive_nullifier, SpendingKey, FullViewingKey
 from ..output import render_args, render_tv
 
-
-#
-# PRFs and hashes
-#
-
-def diversify_hash(d):
-    P = group_hash(b'z.cash:Orchard-gd', d)
-    if P == Point.identity():
-        P = group_hash(b'z.cash:Orchard-gd', b'')
-    return P
-
-
-def prf_nf_orchard(nk, rho):
-    return poseidon.hash(nk, rho)
-
-
-def derive_nullifier(nk, rho: Fp, psi: Fp, cm):
-    scalar = prf_nf_orchard(nk, rho) + psi  # addition mod p
-    point = NULLIFIER_K_BASE * Scalar(scalar.s) + cm
-    return point.extract()
+from zcash_test_vectors.bip340_reference import pubkey_gen
+from zcash_test_vectors.orchardzsa.asset_base import native_asset
 
 
 #
 # Key components
 #
-
-class SpendingKey(object):
-    def __init__(self, data):
-        self.data = data
-
-        self.ask = to_scalar(prf_expand(self.data, b'\x06'))
-        self.nk = to_base(prf_expand(self.data, b'\x07'))
-        self.rivk = to_scalar(prf_expand(self.data, b'\x08'))
-        if self.ask == Scalar.ZERO:
-            raise ValueError("invalid spending key")
-
-        self.akP = SPENDING_KEY_BASE * self.ask
-        if bytes(self.akP)[-1] & 0x80 != 0:
-            self.ask = -self.ask
-
-        self.ak = self.akP.extract()
-        assert commit_ivk(self.rivk, self.ak, self.nk) is not None
-
-
-class ExtendedSpendingKey(SpendingKey):
-    def __init__(self, chaincode, data):
-        SpendingKey.__init__(self, data)
-        self.chaincode = chaincode
-
-    @classmethod
-    def master(cls, S):
-        digest = blake2b(person=b'ZcashIP32Orchard')
-        digest.update(S)
-        I = digest.digest()
-        I_L = I[:32]
-        I_R = I[32:]
-        return cls(I_R, I_L)
-
-    def child(self, i):
-        assert 0x80000000 <= i and i <= 0xFFFFFFFF
-
-        I = prf_expand(self.chaincode, b'\x81' + self.data + i2leosp(32, i))
-        I_L = I[:32]
-        I_R = I[32:]
-        return self.__class__(I_R, I_L)
-
 
 # The IssuanceKeys class contains the two issuance keys, isk and ik.
 # It is initialized with data that is the byte representation of isk, and it generates ik appropriately.
@@ -98,46 +27,10 @@ class IssuanceKeys(object):
         self.ik = pubkey_gen(self.isk)
 
 
-class FullViewingKey(object):
-    def __init__(self, rivk, ak, nk):
-        (self.rivk, self.ak, self.nk) = (rivk, ak, nk)
-        K = i2leosp(256, self.rivk.s)
-        R = prf_expand(K, b'\x82' + i2leosp(256, self.ak.s) + i2leosp(256, self.nk.s))
-        self.dk = R[:32]
-        self.ovk = R[32:]
-
-    @classmethod
-    def from_spending_key(cls, sk):
-        return cls(sk.rivk, sk.ak, sk.nk)
-
-    def ivk(self):
-        return commit_ivk(self.rivk, self.ak, self.nk)
-
-    def diversifier(self, j):
-        return lebs2osp(ff1_aes256_encrypt(self.dk, b'', i2lebsp(88, j)))
-
-    def default_d(self):
-        return self.diversifier(0)
-
-    def g_d(self, j):
-        return diversify_hash(self.diversifier(j))
-
-    def pk_d(self, j):
-        return self.g_d(j) * Scalar(self.ivk().s)
-
-    def default_pkd(self):
-        return self.pk_d(0)
-
-    def internal(self):
-        K = i2leosp(256, self.rivk.s)
-        rivk_internal = to_scalar(prf_expand(K, b'\x83' + i2leosp(256, self.ak.s) + i2leosp(256, self.nk.s)))
-        return self.__class__(rivk_internal, self.ak, self.nk)
-
-
 def main():
     args = render_args()
 
-    from .note import OrchardNote
+    from .note import OrchardZSANote
     from random import Random
     from ..rand import Rand
 
@@ -154,7 +47,7 @@ def main():
     test_vectors = []
     for i in range(0, 10):
         sk = SpendingKey(rand.b(32))
-        isk = IssuanceAuthorizingKey(rand.b(32))
+        isk = IssuanceKeys(rand.b(32))
         fvk = FullViewingKey.from_spending_key(sk)
         default_d = fvk.default_d()
         default_pk_d = fvk.default_pkd()
@@ -164,7 +57,7 @@ def main():
         asset_base = native_asset() if is_native else Point.rand(rand)
         note_rho = Fp.random(rand)
         note_rseed = rand.b(32)
-        note = OrchardNote(
+        note = OrchardZSANote(
             default_d,
             default_pk_d,
             note_v,

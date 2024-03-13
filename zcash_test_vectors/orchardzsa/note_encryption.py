@@ -8,68 +8,24 @@ assert sys.version_info[0] >= 3, "Python 3 required."
 from chacha20poly1305 import ChaCha20Poly1305
 from hashlib import blake2b
 
-from ..transaction import MAX_MONEY
 from ..output import render_args, render_tv
 from ..rand import Rand
 
 from ..orchard.pallas import Point, Scalar
-from .commitments import rcv_trapdoor, value_commit
-from .key_components import diversify_hash, prf_expand, FullViewingKey, SpendingKey
-from .note import OrchardNote, OrchardNotePlaintext
+from .commitments import value_commit
+from ..orchard.commitments import rcv_trapdoor
+from ..orchard.key_components import diversify_hash, prf_expand, FullViewingKey, SpendingKey
+from..orchard.note_encryption import kdf_orchard, prf_ock_orchard, OrchardKeyAgreement, OrchardSym
+from .note import OrchardZSANote, OrchardZSANotePlaintext
 from ..orchard.utils import to_scalar
 
-# https://zips.z.cash/protocol/nu5.pdf#concreteorchardkdf
-def kdf_orchard(shared_secret, ephemeral_key):
-    digest = blake2b(digest_size=32, person=b'Zcash_OrchardKDF')
-    digest.update(bytes(shared_secret))
-    digest.update(ephemeral_key)
-    return digest.digest()
-
-# https://zips.z.cash/protocol/nu5.pdf#concreteprfs
-def prf_ock_orchard(ovk, cv, cmx, ephemeral_key):
-    digest = blake2b(digest_size=32, person=b'Zcash_Orchardock')
-    digest.update(ovk)
-    digest.update(cv)
-    digest.update(cmx)
-    digest.update(ephemeral_key)
-    return digest.digest()
-
-# https://zips.z.cash/protocol/nu5.pdf#concreteorchardkeyagreement
-class OrchardKeyAgreement(object):
-    @staticmethod
-    def esk(rseed, rho):
-        return to_scalar(prf_expand(rseed, b'\x04' + bytes(rho)))
-
-    @staticmethod
-    def derive_public(esk, g_d):
-        return g_d * esk
-
-    @staticmethod
-    def agree(esk, pk_d):
-        return pk_d * esk
-
-# https://zips.z.cash/protocol/nu5.pdf#concretesym
-class OrchardSym(object):
-    @staticmethod
-    def k(rand):
-        return rand.b(32)
-
-    @staticmethod
-    def encrypt(key, plaintext):
-        cip = ChaCha20Poly1305(key)
-        return bytes(cip.encrypt(b'\x00' * 12, plaintext))
-
-    @staticmethod
-    def decrypt(key, ciphertext):
-        cip = ChaCha20Poly1305(key)
-        return bytes(cip.decrypt(b'\x00' * 12, ciphertext))
 
 # https://zips.z.cash/protocol/nu5.pdf#saplingandorchardencrypt
-class OrchardNoteEncryption(object):
+class OrchardZSANoteEncryption(object):
     def __init__(self, rand):
         self._rand = rand
 
-    def encrypt(self, note: OrchardNote, memo, pk_d_new, g_d_new, cv_new, cm_new, ovk=None):
+    def encrypt(self, note: OrchardZSANote, memo, pk_d_new, g_d_new, cv_new, cm_new, ovk=None):
         np = note.note_plaintext(memo)
         esk = OrchardKeyAgreement.esk(np.rseed, note.rho)
         p_enc = bytes(np)
@@ -98,11 +54,11 @@ class OrchardNoteEncryption(object):
         self.ock = ock
         self.op = op
 
-        return TransmittedNoteCipherText(
+        return TransmittedZSANoteCipherText(
             epk, c_enc, c_out
         )
 
-class TransmittedNoteCipherText(object):
+class TransmittedZSANoteCipherText(object):
     def __init__(self, epk, c_enc, c_out):
         self.epk = epk
         self.c_enc = c_enc
@@ -124,7 +80,7 @@ class TransmittedNoteCipherText(object):
         if p_enc is None:
             return None
 
-        np = OrchardNotePlaintext.from_bytes(p_enc)
+        np = OrchardZSANotePlaintext.from_bytes(p_enc)
 
         g_d = diversify_hash(np.d)
 
@@ -133,7 +89,7 @@ class TransmittedNoteCipherText(object):
             return None
 
         pk_d = OrchardKeyAgreement.derive_public(ivk, g_d)
-        note = OrchardNote(np.d, pk_d, np.v, np.asset, rho, np.rseed)
+        note = OrchardZSANote(np.d, pk_d, np.v, np.asset, rho, np.rseed)
 
         cm = note.note_commitment()
         if cm is None:
@@ -166,11 +122,11 @@ class TransmittedNoteCipherText(object):
         if p_enc is None:
             return None
 
-        np = OrchardNotePlaintext.from_bytes(p_enc)
+        np = OrchardZSANotePlaintext.from_bytes(p_enc)
         if OrchardKeyAgreement.esk(np.rseed, rho) != esk:
             return None
         g_d = diversify_hash(np.d)
-        note = OrchardNote(np.d, pk_d, np.v, np.asset, rho, np.rseed)
+        note = OrchardZSANote(np.d, pk_d, np.v, np.asset, rho, np.rseed)
 
         cm = note.note_commitment()
         if cm is None:
@@ -213,16 +169,16 @@ def main():
         rseed = rand.b(32)
         memo = b'\xff' + rand.b(511)
 
-        np = OrchardNotePlaintext(d, rand.u64(), rseed, asset_bytes, memo)
+        np = OrchardZSANotePlaintext(d, rand.u64(), rseed, asset_bytes, memo)
 
         rcv = rcv_trapdoor(rand)
         cv = value_commit(rcv, Scalar(np.v), asset_point)
 
         rho = np.dummy_nullifier(rand)
-        note = OrchardNote(d, pk_d, np.v, asset_bytes, rho, rseed)
+        note = OrchardZSANote(d, pk_d, np.v, asset_bytes, rho, rseed)
         cm = note.note_commitment()
 
-        ne = OrchardNoteEncryption(rand)
+        ne = OrchardZSANoteEncryption(rand)
 
         transmitted_note_ciphertext = ne.encrypt(note, memo, pk_d, g_d, cv, cm, sender_ovk)
 

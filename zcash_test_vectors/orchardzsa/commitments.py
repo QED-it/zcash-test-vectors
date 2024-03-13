@@ -6,30 +6,17 @@ assert sys.version_info[0] >= 3, "Python 3 required."
 from ..orchard.group_hash import group_hash
 from ..orchard.pallas import Fp, Scalar, Point
 from ..orchard.sinsemilla import sinsemilla_hash_to_point
-from .asset_base import zsa_value_base, asset_digest, encode_asset_id, native_asset
 from ..utils import i2lebsp, leos2bsp
+from .asset_base import zsa_value_base, asset_digest, encode_asset_id, native_asset
 
 # Commitment schemes used in Orchard https://zips.z.cash/protocol/nu5.pdf#concretecommit
+from ..orchard.commitments import rcv_trapdoor, sinsemilla_short_commit
 
 # https://zips.z.cash/protocol/nu5.pdf#constants
 L_ORCHARD_BASE = 255
 
-# https://zips.z.cash/protocol/nu5.pdf#concretehomomorphiccommit
-def homomorphic_pedersen_commitment(rcv: Scalar, D, v: Scalar):
-    return group_hash(D, b"v") * v + group_hash(D, b"r") * rcv
-
 def value_commit(rcv: Scalar, v: Scalar, asset: Point):
     return asset * v + group_hash(b"z.cash:Orchard-cv", b"r") * rcv
-
-def rcv_trapdoor(rand):
-    return Scalar.random(rand)
-
-# https://zips.z.cash/protocol/nu5.pdf#concretesinsemillacommit
-def sinsemilla_commit(r: Scalar, D, M):
-    assert isinstance(r, Scalar)
-    return sinsemilla_hash_to_point(D + b"-M", M) + (
-        group_hash(D + b"-r", b"") * r
-    )
 
 # https://zips.z.cash/protocol/nu5.pdf#concretesinsemillacommit
 def sinsemilla_commit_with_blind_personalization(r: Scalar, D_hash, D_blind, M):
@@ -38,23 +25,14 @@ def sinsemilla_commit_with_blind_personalization(r: Scalar, D_hash, D_blind, M):
         group_hash(D_blind + b"-r", b"") * r
     )
 
-def sinsemilla_short_commit(r: Scalar, D, M):
-    return sinsemilla_commit(r, D, M).extract()
-
 # ZIP-226 (https://github.com/zcash/zips/pull/628)
 def note_commit(rcm, g_d, pk_d, v, asset, rho, psi):
+    from ..orchard.commitments import note_commit as note_commit_orchard
+
     if asset == leos2bsp(bytes(native_asset())):
         return note_commit_orchard(rcm, g_d, pk_d, v, rho, psi)
     else:
         return note_commit_zsa(rcm, g_d, pk_d, v, asset, rho, psi)
-
-# https://zips.z.cash/protocol/nu5.pdf#concreteorchardnotecommit
-def note_commit_orchard(rcm, g_d, pk_d, v, rho, psi):
-    return sinsemilla_commit(
-        rcm,
-        b"z.cash:Orchard-NoteCommit",
-        g_d + pk_d + i2lebsp(64, v) + i2lebsp(L_ORCHARD_BASE, rho.s) + i2lebsp(L_ORCHARD_BASE, psi.s)
-    )
 
 def note_commit_zsa(rcm, g_d, pk_d, v, asset, rho, psi):
     return sinsemilla_commit_with_blind_personalization(
@@ -63,20 +41,6 @@ def note_commit_zsa(rcm, g_d, pk_d, v, asset, rho, psi):
         b"z.cash:Orchard-NoteCommit",
         g_d + pk_d + i2lebsp(64, v) + i2lebsp(L_ORCHARD_BASE, rho.s) + i2lebsp(L_ORCHARD_BASE, psi.s) + asset
     )
-
-def rcm_trapdoor(rand):
-    return Scalar.random(rand)
-
-# https://zips.z.cash/protocol/nu5.pdf#concreteorchardnotecommit
-def commit_ivk(rivk: Scalar, ak: Fp, nk: Fp):
-    return sinsemilla_short_commit(
-        rivk,
-        b"z.cash:Orchard-CommitIvk",
-        i2lebsp(L_ORCHARD_BASE, ak.s) + i2lebsp(L_ORCHARD_BASE, nk.s)
-    )
-
-def rivk_trapdoor(rand):
-    return Scalar.random(rand)
 
 # Test consistency of ValueCommit^{Orchard} with precomputed generators
 def test_value_commit():
