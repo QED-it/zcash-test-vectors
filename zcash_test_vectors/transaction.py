@@ -26,6 +26,9 @@ SAPLING_TX_VERSION = 4
 NU5_VERSION_GROUP_ID = 0x26A7270A
 NU5_TX_VERSION = 5
 
+# NU6_VERSION_GROUP_ID = ?
+NU6_TX_VERSION = 6
+
 # Sapling note magic values, copied from src/zcash/Zcash.h
 NOTEENCRYPTION_AUTH_BYTES = 16
 ZC_NOTEPLAINTEXT_LEADING = 1
@@ -34,7 +37,6 @@ ZC_RHO_SIZE = 32
 ZC_R_SIZE = 32
 ZC_MEMO_SIZE = 512
 ZC_DIVERSIFIER_SIZE = 11
-ZC_ORCHARD_ZSA_ASSET_SIZE = 32
 ZC_JUBJUB_POINT_SIZE = 32
 ZC_JUBJUB_SCALAR_SIZE = 32
 ZC_NOTEPLAINTEXT_SIZE = ZC_NOTEPLAINTEXT_LEADING + ZC_V_SIZE + ZC_RHO_SIZE + ZC_R_SIZE + ZC_MEMO_SIZE
@@ -42,6 +44,9 @@ ZC_SAPLING_ENCPLAINTEXT_SIZE = ZC_NOTEPLAINTEXT_LEADING + ZC_DIVERSIFIER_SIZE + 
 ZC_SAPLING_OUTPLAINTEXT_SIZE = ZC_JUBJUB_POINT_SIZE + ZC_JUBJUB_SCALAR_SIZE
 ZC_SAPLING_ENCCIPHERTEXT_SIZE = ZC_SAPLING_ENCPLAINTEXT_SIZE + NOTEENCRYPTION_AUTH_BYTES
 ZC_SAPLING_OUTCIPHERTEXT_SIZE = ZC_SAPLING_OUTPLAINTEXT_SIZE + NOTEENCRYPTION_AUTH_BYTES
+
+# Orchard ZSA note values
+ZC_ORCHARD_ZSA_ASSET_SIZE = 32
 ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE = ZC_SAPLING_ENCPLAINTEXT_SIZE + ZC_ORCHARD_ZSA_ASSET_SIZE
 ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE = ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE + NOTEENCRYPTION_AUTH_BYTES
 
@@ -170,7 +175,7 @@ class OrchardActionDescription(object):
         self.rk = pallas_group_hash(b'TVRandPt', rand.b(32))
         self.cmx = PallasBase(leos2ip(rand.b(32)))
         self.ephemeralKey = pallas_group_hash(b'TVRandPt', rand.b(32))
-        self.encCiphertext = rand.b(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE)
+        self.encCiphertext = rand.b(ZC_SAPLING_ENCCIPHERTEXT_SIZE)
         self.outCiphertext = rand.b(ZC_SAPLING_OUTCIPHERTEXT_SIZE)
         self.spendAuthSig = RedPallasSignature(rand)
 
@@ -183,6 +188,30 @@ class OrchardActionDescription(object):
             bytes(self.ephemeralKey) +
             self.encCiphertext +
             self.outCiphertext
+        )
+
+class OrchardZSAActionDescription(object):
+    def __init__(self, rand):
+        # We don't need to take account of whether this is a coinbase transaction,
+        # because we're only generating random fields.
+        self.cv = pallas_group_hash(b'TVRandPt', rand.b(32))
+        self.nullifier = PallasBase(leos2ip(rand.b(32)))
+        self.rk = pallas_group_hash(b'TVRandPt', rand.b(32))
+        self.cmx = PallasBase(leos2ip(rand.b(32)))
+        self.ephemeralKey = pallas_group_hash(b'TVRandPt', rand.b(32))
+        self.encCiphertext = rand.b(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE)
+        self.outCiphertext = rand.b(ZC_SAPLING_OUTCIPHERTEXT_SIZE)
+        self.spendAuthSig = RedPallasSignature(rand)
+
+    def __bytes__(self):
+        return (
+                bytes(self.cv) +
+                bytes(self.nullifier) +
+                bytes(self.rk) +
+                bytes(self.cmx) +
+                bytes(self.ephemeralKey) +
+                self.encCiphertext +
+                self.outCiphertext
         )
 
 class JoinSplit(object):
@@ -553,9 +582,149 @@ class TransactionV5(object):
         return ret
 
 
+class TransactionV6(object):
+    def __init__(self, rand, consensus_branch_id):
+        # Decide which transaction parts will be generated.
+        flip_coins = rand.u8()
+        have_transparent_in = (flip_coins >> 0) % 2
+        have_transparent_out = (flip_coins >> 1) % 2
+        have_sapling = (flip_coins >> 2) % 2
+        have_orchardzsa = (flip_coins >> 3) % 2
+        is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
+
+        # Common Transaction Fields
+        self.nVersionGroupId = NU5_VERSION_GROUP_ID #TODO: change this to NU6_VERSION_GROUP_ID
+        self.nConsensusBranchId = consensus_branch_id
+        self.nLockTime = rand.u32()
+        self.nExpiryHeight = rand.u32() % TX_EXPIRY_HEIGHT_THRESHOLD
+
+        # Transparent Transaction Fields
+        self.vin = []
+        self.vout = []
+        if have_transparent_in:
+            for _ in range((rand.u8() % 3) + 1):
+                self.vin.append(TxIn(rand))
+        if is_coinbase:
+            self.vin.append(TxIn.from_components(
+                OutPoint.from_components(b'\x00' * 32, 0xFFFFFFFF),
+                Script.coinbase_from_height(self.nExpiryHeight),
+                0xFFFFFFFF))
+        if have_transparent_out:
+            for _ in range((rand.u8() % 3) + 1):
+                self.vout.append(TxOut(rand))
+
+        # Sapling Transaction Fields
+        self.vSpendsSapling = []
+        self.vOutputsSapling = []
+        if have_sapling:
+            self.anchorSapling = Fq(leos2ip(rand.b(32)))
+            # We use the randomness unconditionally here to avoid unnecessary test vector changes.
+            for _ in range(rand.u8() % 3):
+                spend = SpendDescription(rand, self.anchorSapling)
+                if not is_coinbase:
+                    self.vSpendsSapling.append(spend)
+            for _ in range(rand.u8() % 3):
+                self.vOutputsSapling.append(OutputDescription(rand))
+            self.valueBalanceSapling = rand.u64() % (MAX_MONEY + 1)
+            self.bindingSigSapling = RedJubjubSignature(rand)
+        else:
+            # If valueBalanceSapling is not present in the serialized transaction, then
+            # v^balanceSapling is defined to be 0.
+            self.valueBalanceSapling = 0
+
+        # Orchard-ZSA Transaction Fields
+        self.vActionsOrchard = []
+        if have_orchardzsa:
+            for _ in range(rand.u8() % 5):
+                self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
+            self.flagsOrchard = rand.u8() & 3 # Only two flag bits are currently defined.
+            if is_coinbase:
+                # set enableSpendsOrchard = 0
+                self.flagsOrchard &= 2
+            self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
+            self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
+            self.proofsOrchard = rand.b(rand.u8() + 32) # Proof will always contain at least one element
+            self.bindingSigOrchard = RedPallasSignature(rand)
+        else:
+            # If valueBalanceOrchard is not present in the serialized transaction, then
+            # v^balanceOrchard is defined to be 0.
+            self.valueBalanceOrchard = 0
+
+        assert is_coinbase == self.is_coinbase()
+
+    def version_bytes(self):
+        return NU6_TX_VERSION | (1 << 31)
+
+    def is_coinbase(self):
+        # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
+        return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
+
+    # TODO: Update ZIP 225 to document endianness
+    def __bytes__(self):
+        ret = b''
+
+        # Common Transaction Fields
+        ret += struct.pack('<I', self.version_bytes())
+        ret += struct.pack('<I', self.nVersionGroupId)
+        ret += struct.pack('<I', self.nConsensusBranchId)
+        ret += struct.pack('<I', self.nLockTime)
+        ret += struct.pack('<I', self.nExpiryHeight)
+
+        # Transparent Transaction Fields
+        ret += write_compact_size(len(self.vin))
+        for x in self.vin:
+            ret += bytes(x)
+        ret += write_compact_size(len(self.vout))
+        for x in self.vout:
+            ret += bytes(x)
+
+        # Sapling Transaction Fields
+        hasSapling = len(self.vSpendsSapling) + len(self.vOutputsSapling) > 0
+        ret += write_compact_size(len(self.vSpendsSapling))
+        for desc in self.vSpendsSapling:
+            ret += desc.bytes_v5()
+        ret += write_compact_size(len(self.vOutputsSapling))
+        for desc in self.vOutputsSapling:
+            ret += desc.bytes_v5()
+        if hasSapling:
+            ret += struct.pack('<Q', self.valueBalanceSapling)
+        if len(self.vSpendsSapling) > 0:
+            ret += bytes(self.anchorSapling)
+            # Not explicitly gated in the protocol spec, but if the gate
+            # were inactive then these loops would be empty by definition.
+            for desc in self.vSpendsSapling: # vSpendProofsSapling
+                ret += bytes(desc.proof)
+            for desc in self.vSpendsSapling: # vSpendAuthSigsSapling
+                ret += bytes(desc.spendAuthSig)
+        for desc in self.vOutputsSapling: # vOutputProofsSapling
+            ret += bytes(desc.proof)
+        if hasSapling:
+            ret += bytes(self.bindingSigSapling)
+
+        # Orchard Transaction Fields
+        ret += write_compact_size(len(self.vActionsOrchard))
+        if len(self.vActionsOrchard) > 0:
+            # Not explicitly gated in the protocol spec, but if the gate
+            # were inactive then these loops would be empty by definition.
+            for desc in self.vActionsOrchard:
+                ret += bytes(desc) # Excludes spendAuthSig
+            ret += struct.pack('B', self.flagsOrchard)
+            ret += struct.pack('<Q', self.valueBalanceOrchard)
+            ret += bytes(self.anchorOrchard)
+            ret += write_compact_size(len(self.proofsOrchard))
+            ret += self.proofsOrchard
+            for desc in self.vActionsOrchard:
+                ret += bytes(desc.spendAuthSig)
+            ret += bytes(self.bindingSigOrchard)
+
+        return ret
+
 class Transaction(object):
     def __init__(self, rand, version, consensus_branch_id=None):
-        if version == NU5_TX_VERSION:
+        if version == NU6_TX_VERSION:
+            assert consensus_branch_id is not None
+            self.inner = TransactionV6(rand, consensus_branch_id)
+        elif version == NU5_TX_VERSION: #TODO: Change this?
             assert consensus_branch_id is not None
             self.inner = TransactionV5(rand, consensus_branch_id)
         else:
