@@ -4,7 +4,6 @@ tv_scripts=(
     bip_0032
     f4jumble
     f4jumble_long
-    orchard_asset_id
     orchard_empty_roots
     orchard_generators
     orchard_group_hash
@@ -15,6 +14,10 @@ tv_scripts=(
     orchard_poseidon
     orchard_poseidon_hash
     orchard_sinsemilla
+    orchardzsa_asset_base
+    orchardzsa_issuance_auth_sig
+    orchardzsa_key_components
+    orchardzsa_note_encryption
     sapling_generators
     sapling_key_components
     sapling_note_encryption
