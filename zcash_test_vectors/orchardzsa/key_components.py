@@ -96,7 +96,7 @@ def main():
 
     render_tv(
         args,
-        'orchard_key_components',
+        'orchardzsa_key_components',
         (
             ('sk', '[u8; 32]'),
             ('ask', '[u8; 32]'),

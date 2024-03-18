@@ -93,7 +93,7 @@ def main():
 
     render_tv(
         args,
-        'orchard_asset_id',
+        'orchardzsa_asset_base',
         (
             ('key', '[u8; 32]'),
             ('description', '[u8; 512]'),
