@@ -589,7 +589,7 @@ class TransactionV6(object):
         have_transparent_in = (flip_coins >> 0) % 2
         have_transparent_out = (flip_coins >> 1) % 2
         have_sapling = (flip_coins >> 2) % 2
-        have_orchardzsa = (flip_coins >> 3) % 2
+        have_orchard_zsa = (flip_coins >> 3) % 2
         is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
 
         # Common Transaction Fields
@@ -634,7 +634,7 @@ class TransactionV6(object):
 
         # Orchard-ZSA Transaction Fields
         self.vActionsOrchard = []
-        if have_orchardzsa:
+        if have_orchard_zsa:
             for _ in range(rand.u8() % 5):
                 self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
             self.flagsOrchard = rand.u8() & 3 # Only two flag bits are currently defined.

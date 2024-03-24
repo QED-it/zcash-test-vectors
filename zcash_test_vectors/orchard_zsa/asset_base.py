@@ -63,7 +63,7 @@ def main():
     args = render_args()
 
     from zcash_test_vectors.rand import Rand
-    from zcash_test_vectors.orchardzsa.key_components import IssuanceKeys
+    from zcash_test_vectors.orchard_zsa.key_components import IssuanceKeys
 
     from random import Random
 
@@ -93,7 +93,7 @@ def main():
 
     render_tv(
         args,
-        'orchardzsa_asset_base',
+        'orchard_zsa_asset_base',
         (
             ('key', '[u8; 32]'),
             ('description', '[u8; 512]'),

@@ -3,6 +3,7 @@ import struct
 from .asset_base import native_asset
 from .commitments import note_commit
 from ..orchard.key_components import diversify_hash, derive_nullifier, prf_expand, FullViewingKey, SpendingKey
+from ..orchard.note import OrchardNote
 from ..orchard.pallas import Point, Scalar
 from ..orchard.utils import to_base, to_scalar
 from ..utils import leos2bsp
@@ -24,13 +25,13 @@ class OrchardZSANote(object):
         if other is None:
             return False
         return (
-            self.d == other.d and
-            self.pk_d == other.pk_d and
-            self.v == other.v and
-            self.asset == other.asset and
-            self.rho == other.rho and
-            self.rcm == other.rcm and
-            self.psi == other.psi
+                self.d == other.d and
+                self.pk_d == other.pk_d and
+                self.v == other.v and
+                self.asset == other.asset and
+                self.rho == other.rho and
+                self.rcm == other.rcm and
+                self.psi == other.psi
         )
 
     def rcm(self):

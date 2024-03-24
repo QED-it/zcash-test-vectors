@@ -64,7 +64,7 @@ orchard_poseidon_hash = "zcash_test_vectors.orchard.poseidon:hash_test_vectors"
 orchard_sinsemilla = "zcash_test_vectors.orchard.sinsemilla:main"
 
 # OrchardZSA test vectors
-orchardzsa_asset_base="zcash_test_vectors.orchardzsa.asset_base:main"
-orchardzsa_issuance_auth_sig="zcash_test_vectors.orchardzsa.issuance_auth_sig:main"
-orchardzsa_key_components = "zcash_test_vectors.orchardzsa.key_components:main"
-orchardzsa_note_encryption = "zcash_test_vectors.orchardzsa.note_encryption:main"
+orchard_zsa_asset_base="zcash_test_vectors.orchard_zsa.asset_base:main"
+orchard_zsa_issuance_auth_sig="zcash_test_vectors.orchard_zsa.issuance_auth_sig:main"
+orchard_zsa_key_components = "zcash_test_vectors.orchard_zsa.key_components:main"
+orchard_zsa_note_encryption = "zcash_test_vectors.orchard_zsa.note_encryption:main"

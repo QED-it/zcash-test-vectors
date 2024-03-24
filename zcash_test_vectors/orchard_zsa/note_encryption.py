@@ -219,7 +219,7 @@ def main():
 
     render_tv(
         args,
-        'orchardzsa_note_encryption',
+        'orchard_zsa_note_encryption',
         (
             ('incoming_viewing_key', '[u8; 64]'),
             ('ovk', '[u8; 32]'),

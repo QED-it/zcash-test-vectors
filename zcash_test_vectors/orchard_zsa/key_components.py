@@ -8,7 +8,7 @@ from ..orchard.key_components import derive_nullifier, SpendingKey, FullViewingK
 from ..output import render_args, render_tv
 
 from zcash_test_vectors.bip340_reference import pubkey_gen
-from zcash_test_vectors.orchardzsa.asset_base import native_asset
+from zcash_test_vectors.orchard_zsa.asset_base import native_asset
 
 
 #
@@ -96,7 +96,7 @@ def main():
 
     render_tv(
         args,
-        'orchardzsa_key_components',
+        'orchard_zsa_key_components',
         (
             ('sk', '[u8; 32]'),
             ('ask', '[u8; 32]'),
