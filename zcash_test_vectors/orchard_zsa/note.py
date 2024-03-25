@@ -2,10 +2,8 @@ import struct
 
 from .asset_base import native_asset
 from .commitments import note_commit
-from ..orchard.key_components import diversify_hash, derive_nullifier, prf_expand, FullViewingKey, SpendingKey
-from ..orchard.note import OrchardNote
-from ..orchard.pallas import Point, Scalar
-from ..orchard.utils import to_base, to_scalar
+from ..orchard.key_components import diversify_hash
+from ..orchard.note import OrchardNote, OrchardNotePlaintext
 from ..utils import leos2bsp
 
 
@@ -31,15 +29,12 @@ class OrchardZSANote(OrchardNote):
         return OrchardZSANotePlaintext(self.d, self.v, self.rseed, self.asset, memo)
 
 # https://zips.z.cash/protocol/nu5.pdf#notept
-class OrchardZSANotePlaintext(object):
+class OrchardZSANotePlaintext(OrchardNotePlaintext):
     def __init__(self, d, v, rseed, asset, memo):
+        OrchardNotePlaintext.__init__(self, d, v, rseed, memo)
         self.leadbyte = bytes.fromhex('03')
-        self.d = d
-        self.v = v
         self.asset = asset
-        self.rseed = rseed
-        self.memo = memo
-    
+
     @staticmethod
     def from_bytes(buf):
         leadbyte = buf[0]
@@ -71,24 +66,7 @@ class OrchardZSANotePlaintext(object):
 
     def __bytes__(self):
         return (
-            self.leadbyte +
-            self.d +
-            struct.pack('<Q', self.v) +
-            self.rseed +
+            OrchardNotePlaintext.__bytes__(self)[:-512] +
             self.asset +
             self.memo
         )
-
-    def dummy_nullifier(self, rand):
-        sk = SpendingKey(rand.b(32))
-        fvk = FullViewingKey.from_spending_key(sk)
-        pk_d = fvk.default_pkd()
-        d = fvk.default_d()
-
-        v = 0
-        rseed = rand.b(32)
-        rho = Point.rand(rand).extract()
-
-        note = OrchardZSANote(d, pk_d, v, native_asset(), rho, rseed)
-        cm = note.note_commitment()
-        return derive_nullifier(fvk.nk, rho, note.psi, cm)
