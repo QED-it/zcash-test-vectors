@@ -9,36 +9,18 @@ from ..orchard.utils import to_base, to_scalar
 from ..utils import leos2bsp
 
 
-class OrchardZSANote(object):
+class OrchardZSANote(OrchardNote):
     def __init__(self, d, pk_d, v, asset, rho, rseed):
-        assert isinstance(v, int)
-        self.d = d
-        self.pk_d = pk_d
-        self.v = v
+        OrchardNote.__init__(self, d, pk_d, v, rho, rseed)
         self.asset = asset
-        self.rho = rho
-        self.rseed = rseed
-        self.rcm = self.rcm()
-        self.psi = self.psi()
 
     def __eq__(self, other):
         if other is None:
             return False
         return (
-                self.d == other.d and
-                self.pk_d == other.pk_d and
-                self.v == other.v and
-                self.asset == other.asset and
-                self.rho == other.rho and
-                self.rcm == other.rcm and
-                self.psi == other.psi
+                OrchardNote.__eq__(self, other) and
+                self.asset == other.asset
         )
-
-    def rcm(self):
-        return to_scalar(prf_expand(self.rseed, b'\x05' + bytes(self.rho)))
-
-    def psi(self):
-        return to_base(prf_expand(self.rseed, b'\x09' + bytes(self.rho)))
 
     def note_commitment(self):
         g_d = diversify_hash(self.d)
