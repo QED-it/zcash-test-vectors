@@ -15,7 +15,7 @@ from ..orchard.pallas import Point, Scalar
 from .commitments import value_commit
 from ..orchard.commitments import rcv_trapdoor
 from ..orchard.key_components import diversify_hash, prf_expand, FullViewingKey, SpendingKey
-from..orchard.note_encryption import kdf_orchard, prf_ock_orchard, OrchardKeyAgreement, OrchardSym
+from..orchard.note_encryption import kdf_orchard, prf_ock_orchard, OrchardKeyAgreement, OrchardSym, TransmittedNoteCipherText
 from .note import OrchardZSANote, OrchardZSANotePlaintext
 from ..orchard.utils import to_scalar
 
@@ -58,87 +58,17 @@ class OrchardZSANoteEncryption(object):
             epk, c_enc, c_out
         )
 
-class TransmittedZSANoteCipherText(object):
+class TransmittedZSANoteCipherText(TransmittedNoteCipherText):
     def __init__(self, epk, c_enc, c_out):
-        self.epk = epk
-        self.c_enc = c_enc
-        self.c_out = c_out
+        TransmittedNoteCipherText.__init__(self, epk, c_enc, c_out)
 
-    def decrypt_using_ivk(self, ivk: Scalar, rho, cm_star):
-        epk = self.epk
-        if epk is None:
-            return None
+    @staticmethod
+    def parse_bytes_as_note_plaintext(p_enc):
+        return OrchardZSANotePlaintext.from_bytes(p_enc)
 
-        shared_secret = OrchardKeyAgreement.agree(ivk, epk)
-        # The protocol spec says to take `ephemeral_key` as input to decryption
-        # and to decode epk from it. That is required for consensus compatibility
-        # in Sapling decryption before ZIP 216, but the reverse is okay here
-        # because Pallas points have no non-canonical encodings.
-        ephemeral_key = bytes(epk)
-        k_enc = kdf_orchard(shared_secret, ephemeral_key)
-        p_enc = OrchardSym.decrypt(k_enc, self.c_enc)
-        if p_enc is None:
-            return None
-
-        np = OrchardZSANotePlaintext.from_bytes(p_enc)
-
-        g_d = diversify_hash(np.d)
-
-        esk = OrchardKeyAgreement.esk(np.rseed, rho)
-        if OrchardKeyAgreement.derive_public(esk, g_d) != epk:
-            return None
-
-        pk_d = OrchardKeyAgreement.derive_public(ivk, g_d)
-        note = OrchardZSANote(np.d, pk_d, np.v, np.asset, rho, np.rseed)
-
-        cm = note.note_commitment()
-        if cm is None:
-            return None
-        if cm.extract() != cm_star:
-            return None
-
-        return (note, np.memo)
-
-    def decrypt_using_ovk(self, ovk, rho, cv, cm_star):
-        # The protocol spec says to take `ephemeral_key` as input to decryption
-        # and to decode epk from it. That is required for consensus compatibility
-        # in Sapling decryption before ZIP 216, but the reverse is okay here
-        # because Pallas points have no non-canonical encodings.
-        ephemeral_key = bytes(self.epk)
-        ock = prf_ock_orchard(ovk, bytes(cv), bytes(cm_star), ephemeral_key)
-        op = OrchardSym.decrypt(ock, self.c_out)
-        if op is None:
-            return None
-
-        (pk_d_star, esk) = (op[0:32], op[32:64])
-        esk = Scalar.from_bytes(esk)
-        pk_d = Point.from_bytes(pk_d_star)
-        if bytes(pk_d) != pk_d_star:
-            return None
-
-        shared_secret = OrchardKeyAgreement.agree(esk, pk_d)
-        k_enc = kdf_orchard(shared_secret, ephemeral_key)
-        p_enc = OrchardSym.decrypt(k_enc, self.c_enc)
-        if p_enc is None:
-            return None
-
-        np = OrchardZSANotePlaintext.from_bytes(p_enc)
-        if OrchardKeyAgreement.esk(np.rseed, rho) != esk:
-            return None
-        g_d = diversify_hash(np.d)
-        note = OrchardZSANote(np.d, pk_d, np.v, np.asset, rho, np.rseed)
-
-        cm = note.note_commitment()
-        if cm is None:
-            return None
-        if cm.extract() != cm_star:
-            return None
-
-        if OrchardKeyAgreement.derive_public(esk, g_d) != self.epk:
-            return None
-
-        return (note, np.memo)
-
+    @staticmethod
+    def construct_note(np: OrchardZSANotePlaintext, pk_d, rho):
+        return OrchardZSANote(np.d, pk_d, np.v, np.asset, rho, np.rseed)
 
 def main():
     args = render_args()
