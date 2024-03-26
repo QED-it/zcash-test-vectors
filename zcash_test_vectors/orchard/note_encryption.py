@@ -126,14 +126,7 @@ class TransmittedNoteCipherText(object):
         if p_enc is None:
             return None
 
-        leadbyte = p_enc[0]
-        assert(leadbyte == 2)
-        np = OrchardNotePlaintext(
-            p_enc[1:12],   # d
-            struct.unpack('<Q', p_enc[12:20])[0],  # v
-            p_enc[20:52],  # rseed
-            p_enc[52:564], # memo
-        )
+        np = self.parse_bytes_as_note_plaintext(p_enc)
 
         g_d = diversify_hash(np.d)
 
@@ -142,7 +135,8 @@ class TransmittedNoteCipherText(object):
             return None
 
         pk_d = OrchardKeyAgreement.derive_public(ivk, g_d)
-        note = OrchardNote(np.d, pk_d, np.v, rho, np.rseed)
+
+        note = self.construct_note(np, pk_d, rho)
 
         cm = note.note_commitment()
         if cm is None:
@@ -175,18 +169,13 @@ class TransmittedNoteCipherText(object):
         if p_enc is None:
             return None
 
-        leadbyte = p_enc[0]
-        assert(leadbyte == 2)
-        np = OrchardNotePlaintext(
-            p_enc[1:12],   # d
-            struct.unpack('<Q', p_enc[12:20])[0],  # v
-            p_enc[20:52],  # rseed
-            p_enc[52:564], # memo
-        )
+        np = self.parse_bytes_as_note_plaintext(p_enc)
+
         if OrchardKeyAgreement.esk(np.rseed, rho) != esk:
             return None
         g_d = diversify_hash(np.d)
-        note = OrchardNote(np.d, pk_d, np.v, rho, np.rseed)
+
+        note = self.construct_note(np, pk_d, rho)
 
         cm = note.note_commitment()
         if cm is None:
@@ -198,6 +187,22 @@ class TransmittedNoteCipherText(object):
             return None
 
         return (note, np.memo)
+
+    @staticmethod
+    def parse_bytes_as_note_plaintext(p_enc):
+        leadbyte = p_enc[0]
+        assert(leadbyte == 2)
+        return OrchardNotePlaintext(
+            p_enc[1:12],   # d
+            struct.unpack('<Q', p_enc[12:20])[0],  # v
+            p_enc[20:52],  # rseed
+            p_enc[52:564], # memo
+        )
+
+    @staticmethod
+    def construct_note(np: OrchardNotePlaintext, pk_d, rho):
+        return OrchardNote(np.d, pk_d, np.v, rho, np.rseed)
+
 
 def main():
     args = render_args()
