@@ -15,47 +15,21 @@ from ..orchard.pallas import Point, Scalar
 from .commitments import value_commit
 from ..orchard.commitments import rcv_trapdoor
 from ..orchard.key_components import diversify_hash, prf_expand, FullViewingKey, SpendingKey
-from..orchard.note_encryption import kdf_orchard, prf_ock_orchard, OrchardKeyAgreement, OrchardSym, TransmittedNoteCipherText
+from..orchard.note_encryption import kdf_orchard, prf_ock_orchard, OrchardKeyAgreement, OrchardSym, TransmittedNoteCipherText, OrchardNoteEncryption
 from .note import OrchardZSANote, OrchardZSANotePlaintext
 from ..orchard.utils import to_scalar
 
 
 # https://zips.z.cash/protocol/nu5.pdf#saplingandorchardencrypt
-class OrchardZSANoteEncryption(object):
+class OrchardZSANoteEncryption(OrchardNoteEncryption):
     def __init__(self, rand):
-        self._rand = rand
+        OrchardNoteEncryption.__init__(self, rand)
 
     def encrypt(self, note: OrchardZSANote, memo, pk_d_new, g_d_new, cv_new, cm_new, ovk=None):
-        np = note.note_plaintext(memo)
-        esk = OrchardKeyAgreement.esk(np.rseed, note.rho)
-        p_enc = bytes(np)
-
-        epk = OrchardKeyAgreement.derive_public(esk, g_d_new)
-        ephemeral_key = bytes(epk)
-        shared_secret = OrchardKeyAgreement.agree(esk, pk_d_new)
-        k_enc = kdf_orchard(shared_secret, ephemeral_key)
-        c_enc = OrchardSym.encrypt(k_enc, p_enc)
-
-        if ovk is None:
-            ock = OrchardSym.k(self._rand)
-            op = self._rand.b(64)
-        else:
-            cv = bytes(cv_new)
-            cmx = bytes(cm_new.extract())
-            ock = prf_ock_orchard(ovk, cv, cmx, ephemeral_key)
-            op = bytes(pk_d_new) + bytes(esk)
-
-        c_out = OrchardSym.encrypt(ock, op)
-
-        self.esk = esk
-        self.shared_secret = shared_secret
-        self.k_enc = k_enc
-        self.p_enc = p_enc
-        self.ock = ock
-        self.op = op
+        tc = OrchardNoteEncryption.encrypt(self, note, memo, pk_d_new, g_d_new, cv_new, cm_new, ovk)
 
         return TransmittedZSANoteCipherText(
-            epk, c_enc, c_out
+            tc.epk, tc.c_enc, tc.c_out
         )
 
 class TransmittedZSANoteCipherText(TransmittedNoteCipherText):
