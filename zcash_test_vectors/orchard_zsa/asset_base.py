@@ -35,6 +35,8 @@ def get_random_unicode_bytes(length):
     except NameError:
         get_char = chr
 
+    random.seed(0xabad533d)
+
     # Update this to include code point ranges to be sampled
     include_ranges = [
         ( 0x0021, 0x0021 ),
