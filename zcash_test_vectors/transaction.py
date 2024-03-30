@@ -26,7 +26,7 @@ SAPLING_TX_VERSION = 4
 NU5_VERSION_GROUP_ID = 0x26A7270A
 NU5_TX_VERSION = 5
 
-# NU6_VERSION_GROUP_ID = ?
+NU6_VERSION_GROUP_ID = 0xFFFFFFFF # Using the value reserved for experimental extensions, needs to be changed
 NU6_TX_VERSION = 6
 
 # Sapling note magic values, copied from src/zcash/Zcash.h
@@ -593,7 +593,7 @@ class TransactionV6(object):
         is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
 
         # Common Transaction Fields
-        self.nVersionGroupId = NU5_VERSION_GROUP_ID #TODO: change this to NU6_VERSION_GROUP_ID
+        self.nVersionGroupId = NU6_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
         self.nLockTime = rand.u32()
         self.nExpiryHeight = rand.u32() % TX_EXPIRY_HEIGHT_THRESHOLD
