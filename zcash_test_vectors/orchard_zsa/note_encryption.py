@@ -23,10 +23,10 @@ from ..orchard.utils import to_scalar
 # https://zips.z.cash/protocol/nu5.pdf#saplingandorchardencrypt
 class OrchardZSANoteEncryption(OrchardNoteEncryption):
     def __init__(self, rand):
-        OrchardNoteEncryption.__init__(self, rand)
+        super().__init__(rand)
 
     def encrypt(self, note: OrchardZSANote, memo, pk_d_new, g_d_new, cv_new, cm_new, ovk=None):
-        tc = OrchardNoteEncryption.encrypt(self, note, memo, pk_d_new, g_d_new, cv_new, cm_new, ovk)
+        tc = super().encrypt(note, memo, pk_d_new, g_d_new, cv_new, cm_new, ovk)
 
         return TransmittedZSANoteCipherText(
             tc.epk, tc.c_enc, tc.c_out
@@ -34,7 +34,7 @@ class OrchardZSANoteEncryption(OrchardNoteEncryption):
 
 class TransmittedZSANoteCipherText(TransmittedNoteCipherText):
     def __init__(self, epk, c_enc, c_out):
-        TransmittedNoteCipherText.__init__(self, epk, c_enc, c_out)
+        super().__init__(epk, c_enc, c_out)
 
     @staticmethod
     def parse_bytes_as_note_plaintext(p_enc):

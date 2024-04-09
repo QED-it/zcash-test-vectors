@@ -9,14 +9,14 @@ from ..utils import leos2bsp
 
 class OrchardZSANote(OrchardNote):
     def __init__(self, d, pk_d, v, asset, rho, rseed):
-        OrchardNote.__init__(self, d, pk_d, v, rho, rseed)
+        super().__init__(d, pk_d, v, rho, rseed)
         self.asset = asset
 
     def __eq__(self, other):
         if other is None:
             return False
         return (
-                OrchardNote.__eq__(self, other) and
+                super().__eq__(other) and
                 self.asset == other.asset
         )
 
@@ -31,7 +31,7 @@ class OrchardZSANote(OrchardNote):
 # https://zips.z.cash/protocol/nu5.pdf#notept
 class OrchardZSANotePlaintext(OrchardNotePlaintext):
     def __init__(self, d, v, rseed, asset, memo):
-        OrchardNotePlaintext.__init__(self, d, v, rseed, memo)
+        super().__init__(d, v, rseed, memo)
         self.leadbyte = bytes.fromhex('03')
         self.asset = asset
 
@@ -66,7 +66,7 @@ class OrchardZSANotePlaintext(OrchardNotePlaintext):
 
     def __bytes__(self):
         return (
-            OrchardNotePlaintext.__bytes__(self)[:-512] +
+            super().__bytes__()[:-512] +
             self.asset +
             self.memo
         )
