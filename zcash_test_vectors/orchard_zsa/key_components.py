@@ -16,12 +16,12 @@ from zcash_test_vectors.orchard_zsa.asset_base import native_asset
 #
 
 # The IssuanceKeys class contains the two issuance keys, isk and ik.
-# It is initialized with data that is the byte representation of isk, and it generates ik appropriately.
+# The instantiation is done using the byte representation of isk, and it generates ik appropriately.
 class IssuanceKeys(object):
     def __init__(self, data):
         self.isk = data
 
-        if self.isk == b'\0' * 32:
+        if len(self.isk) != 32 or self.isk == b'\0' * 32:
             raise ValueError("invalid issuer key")
 
         self.ik = pubkey_gen(self.isk)

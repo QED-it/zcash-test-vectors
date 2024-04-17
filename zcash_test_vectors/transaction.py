@@ -656,10 +656,8 @@ class TransactionV6(object):
         return NU6_TX_VERSION | (1 << 31)
 
     def is_coinbase(self):
-        # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
 
-    # TODO: Update ZIP 225 to document endianness
     def __bytes__(self):
         ret = b''
 
@@ -701,7 +699,7 @@ class TransactionV6(object):
         if hasSapling:
             ret += bytes(self.bindingSigSapling)
 
-        # Orchard Transaction Fields
+        # OrchardZSA Transaction Fields
         ret += write_compact_size(len(self.vActionsOrchard))
         if len(self.vActionsOrchard) > 0:
             # Not explicitly gated in the protocol spec, but if the gate

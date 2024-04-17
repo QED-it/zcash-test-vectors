@@ -10,10 +10,7 @@ from ..utils import i2lebsp, leos2bsp
 from .asset_base import zsa_value_base, asset_digest, encode_asset_id, native_asset
 
 # Commitment schemes used in Orchard https://zips.z.cash/protocol/nu5.pdf#concretecommit
-from ..orchard.commitments import rcv_trapdoor, sinsemilla_short_commit
-
-# https://zips.z.cash/protocol/nu5.pdf#constants
-L_ORCHARD_BASE = 255
+from ..orchard.commitments import rcv_trapdoor, L_ORCHARD_BASE
 
 def value_commit(rcv: Scalar, v: Scalar, asset: Point):
     return asset * v + group_hash(b"z.cash:Orchard-cv", b"r") * rcv
@@ -42,7 +39,7 @@ def note_commit_zsa(rcm, g_d, pk_d, v, asset, rho, psi):
         g_d + pk_d + i2lebsp(64, v) + i2lebsp(L_ORCHARD_BASE, rho.s) + i2lebsp(L_ORCHARD_BASE, psi.s) + asset
     )
 
-# Test consistency of ValueCommit^{Orchard} with precomputed generators
+# Test consistency of ValueCommit^{Orchard} and ValueCommit^{OrchardZSA} with precomputed generators
 def test_value_commit():
     from random import Random
     from ..rand import Rand
