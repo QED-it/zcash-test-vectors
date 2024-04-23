@@ -363,12 +363,8 @@ def main():
 
     test_vectors = []
     for i in range(10):
-        if i < 5:
-            tx = TransactionV5(rand, consensusBranchId)
-            version = NU5_TX_VERSION
-        else:
-            tx = TransactionV6(rand, consensusBranchId)
-            version = NU6_TX_VERSION
+        tx = TransactionV5(rand, consensusBranchId)
+        version = NU5_TX_VERSION
 
         txid = txid_digest(tx, version)
         auth = auth_digest(tx)
