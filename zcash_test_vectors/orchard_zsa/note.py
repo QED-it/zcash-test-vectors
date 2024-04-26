@@ -22,13 +22,12 @@ class OrchardZSANote(OrchardNote):
 
     def note_commitment(self):
         g_d = diversify_hash(self.d)
-        # asset = self.asset and leos2bsp(self.asset)
         return note_commit(self.rcm, leos2bsp(bytes(g_d)), leos2bsp(bytes(self.pk_d)), self.v, leos2bsp(bytes(self.asset)), self.rho, self.psi)
 
     def note_plaintext(self, memo):
         return OrchardZSANotePlaintext(self.d, self.v, self.rseed, self.asset, memo)
 
-# https://zips.z.cash/protocol/nu5.pdf#notept
+# https://zips.z.cash/zip-0226#note-structure-commitment
 class OrchardZSANotePlaintext(OrchardNotePlaintext):
     def __init__(self, d, v, rseed, asset, memo):
         super().__init__(d, v, rseed, memo)
@@ -47,11 +46,11 @@ class OrchardZSANotePlaintext(OrchardNotePlaintext):
     @staticmethod
     def _from_bytes_orchard(buf):
         return OrchardZSANotePlaintext(
-            buf[1:12],    # d
+            buf[1:12],      # d
             struct.unpack('<Q', buf[12:20])[0],  # v
-            buf[20:52],   # rseed
-            native_asset(),         # asset
-            buf[52:564],  # memo
+            buf[20:52],     # rseed
+            native_asset(), # asset
+            buf[52:564],    # memo
         )
 
     @staticmethod

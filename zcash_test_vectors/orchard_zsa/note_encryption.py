@@ -16,7 +16,7 @@ from..orchard.note_encryption import TransmittedNoteCipherText, OrchardNoteEncry
 from .note import OrchardZSANote, OrchardZSANotePlaintext
 
 
-# https://zips.z.cash/protocol/nu5.pdf#saplingandorchardencrypt
+# https://zips.z.cash/zip-0226#note-structure-commitment
 class OrchardZSANoteEncryption(OrchardNoteEncryption):
     def __init__(self, rand):
         super().__init__(rand)
