@@ -5,7 +5,7 @@ from .orchard.pallas import (
     Scalar as PallasScalar,
 )
 from .orchard.sinsemilla import group_hash as pallas_group_hash
-from .sapling.generators import find_group_hash, SPENDING_KEY_BASE
+from .sapling.generators import find_group_hash
 from .sapling.jubjub import (
     Fq,
     Point,

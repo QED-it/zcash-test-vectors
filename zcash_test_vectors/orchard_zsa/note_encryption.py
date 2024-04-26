@@ -5,19 +5,15 @@ from .asset_base import native_asset
 
 assert sys.version_info[0] >= 3, "Python 3 required."
 
-from chacha20poly1305 import ChaCha20Poly1305
-from hashlib import blake2b
-
 from ..output import render_args, render_tv
 from ..rand import Rand
 
 from ..orchard.pallas import Point, Scalar
 from .commitments import value_commit
 from ..orchard.commitments import rcv_trapdoor
-from ..orchard.key_components import diversify_hash, prf_expand, FullViewingKey, SpendingKey
-from..orchard.note_encryption import kdf_orchard, prf_ock_orchard, OrchardKeyAgreement, OrchardSym, TransmittedNoteCipherText, OrchardNoteEncryption
+from ..orchard.key_components import diversify_hash, FullViewingKey, SpendingKey
+from..orchard.note_encryption import TransmittedNoteCipherText, OrchardNoteEncryption
 from .note import OrchardZSANote, OrchardZSANotePlaintext
-from ..orchard.utils import to_scalar
 
 
 # https://zips.z.cash/protocol/nu5.pdf#saplingandorchardencrypt
