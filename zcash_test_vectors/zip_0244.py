@@ -7,6 +7,7 @@ import struct
 from .transaction import (
     MAX_MONEY,
     NU5_TX_VERSION,
+    NU6_TX_VERSION,
     Script,
     TransactionV5,
 )
@@ -128,13 +129,13 @@ def sapling_outputs_noncompact_digest(tx):
 
 # Orchard
 
-def orchard_digest(tx):
+def orchard_digest(tx, version):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrchardHash')
 
     if len(tx.vActionsOrchard) > 0:
-        digest.update(orchard_actions_compact_digest(tx))
-        digest.update(orchard_actions_memos_digest(tx))
-        digest.update(orchard_actions_noncompact_digest(tx))
+        digest.update(orchard_actions_compact_digest(tx, version))
+        digest.update(orchard_actions_memos_digest(tx, version))
+        digest.update(orchard_actions_noncompact_digest(tx, version))
         digest.update(struct.pack('<B', tx.flagsOrchard))
         digest.update(struct.pack('<Q', tx.valueBalanceOrchard))
         digest.update(bytes(tx.anchorOrchard))
@@ -154,27 +155,36 @@ def orchard_auth_digest(tx):
 
 # - Actions
 
-def orchard_actions_compact_digest(tx):
+def orchard_actions_compact_digest(tx, version):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActCHash')
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.nullifier))
         digest.update(bytes(desc.cmx))
         digest.update(bytes(desc.ephemeralKey))
-        digest.update(desc.encCiphertext[:52])
+        if version == NU6_TX_VERSION:
+            digest.update(desc.encCiphertext[:84])
+        else:
+            digest.update(desc.encCiphertext[:52])
     return digest.digest()
 
-def orchard_actions_memos_digest(tx):
+def orchard_actions_memos_digest(tx, version):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActMHash')
     for desc in tx.vActionsOrchard:
-        digest.update(desc.encCiphertext[52:564])
+        if version == NU6_TX_VERSION:
+            digest.update(desc.encCiphertext[84:596])
+        else:
+            digest.update(desc.encCiphertext[52:564])
     return digest.digest()
 
-def orchard_actions_noncompact_digest(tx):
+def orchard_actions_noncompact_digest(tx, version):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActNHash')
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.cv))
         digest.update(bytes(desc.rk))
-        digest.update(desc.encCiphertext[564:])
+        if version == NU6_TX_VERSION:
+            digest.update(desc.encCiphertext[596:])
+        else:
+            digest.update(desc.encCiphertext[564:])
         digest.update(desc.outCiphertext)
     return digest.digest()
 
@@ -191,7 +201,7 @@ def header_digest(tx):
 
     return digest.digest()
 
-def txid_digest(tx):
+def txid_digest(tx, version):
     digest = blake2b(
         digest_size=32,
         person=b'ZcashTxHash_' + struct.pack('<I', tx.nConsensusBranchId),
@@ -200,7 +210,7 @@ def txid_digest(tx):
     digest.update(header_digest(tx))
     digest.update(transparent_digest(tx))
     digest.update(sapling_digest(tx))
-    digest.update(orchard_digest(tx))
+    digest.update(orchard_digest(tx, version))
 
     return digest.digest()
 
@@ -226,7 +236,7 @@ class TransparentInput(object):
         self.scriptPubKey = Script(rand)
         self.amount = rand.u64() % (MAX_MONEY + 1)
 
-def signature_digest(tx, t_inputs, nHashType, txin):
+def signature_digest(tx, t_inputs, nHashType, txin, version):
     digest = blake2b(
         digest_size=32,
         person=b'ZcashTxHash_' + struct.pack('<I', tx.nConsensusBranchId),
@@ -235,7 +245,7 @@ def signature_digest(tx, t_inputs, nHashType, txin):
     digest.update(header_digest(tx))
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
     digest.update(sapling_digest(tx))
-    digest.update(orchard_digest(tx))
+    digest.update(orchard_digest(tx, version))
 
     return digest.digest()
 
@@ -272,7 +282,7 @@ def hash_type(tx, nHashType, txin):
             SIGHASH_ALL | SIGHASH_ANYONECANPAY,
             SIGHASH_NONE | SIGHASH_ANYONECANPAY,
             SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
-        ]
+            ]
         assert (nHashType & 0x1f) != SIGHASH_SINGLE or 0 <= txin.nIn and txin.nIn < len(tx.vout)
     return struct.pack('B', nHashType)
 
@@ -353,7 +363,9 @@ def main():
     test_vectors = []
     for _ in range(10):
         tx = TransactionV5(rand, consensusBranchId)
-        txid = txid_digest(tx)
+        version = NU5_TX_VERSION
+
+        txid = txid_digest(tx, version)
         auth = auth_digest(tx)
 
         # Generate amounts and scriptCodes for each non-dummy transparent input.
@@ -368,22 +380,22 @@ def main():
         else:
             txin = None
 
-        sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
+        sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None, version)
         other_sighashes = {
-            nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
+            nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin, version)
             for nHashType in ([
+                                  SIGHASH_ALL,
+                                  SIGHASH_NONE,
+                                  SIGHASH_SINGLE,
+                                  SIGHASH_ALL | SIGHASH_ANYONECANPAY,
+                                  SIGHASH_NONE | SIGHASH_ANYONECANPAY,
+                                  SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
+                                  ] if txin is None or txin.nIn < len(tx.vout) else [
                 SIGHASH_ALL,
                 SIGHASH_NONE,
-                SIGHASH_SINGLE,
                 SIGHASH_ALL | SIGHASH_ANYONECANPAY,
                 SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
-            ] if txin is None or txin.nIn < len(tx.vout) else [
-                SIGHASH_ALL,
-                SIGHASH_NONE,
-                SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-            ])
+                ])
         }
 
         test_vectors.append({
