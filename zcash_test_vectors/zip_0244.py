@@ -10,6 +10,7 @@ from .transaction import (
     NU6_TX_VERSION,
     Script,
     TransactionV5,
+    TransactionV6,
 )
 from .output import render_args, render_tv, Some
 from .rand import Rand
@@ -188,6 +189,41 @@ def orchard_actions_noncompact_digest(tx, version):
         digest.update(desc.outCiphertext)
     return digest.digest()
 
+def issuance_digest(tx):
+    digest = blake2b(digest_size=32, person=b'ZTxIdSAIssueHash')
+
+    if len(tx.vIssueActions) > 0:
+        digest.update(issue_actions_digest(tx))
+        digest.update(bytes(tx.ik))
+
+    return digest.digest()
+
+def issuance_auth_digest(tx):
+    digest = blake2b(digest_size=32, person=b'ZTxAuthZSAOrHash')
+    if len(tx.vIssueActions) > 0:
+        digest.update(tx.issueAuthSig)
+    return digest.digest()
+
+def issue_actions_digest(tx):
+    digest = blake2b(digest_size=32, person=b'ZTxIdIssuActHash')
+
+    for action in tx.vIssueActions:
+        digest.update(issue_notes_digest(action))
+        digest.update(action.asset_desc)
+        digest.update(struct.pack('<B', action.flagsIssuance))
+
+    digest.update(tx.ik)
+    return digest.digest()
+
+def issue_notes_digest(action):
+    digest = blake2b(digest_size=32, person=b'ZTxIdIAcNoteHash')
+
+    for note in action.vNotes:
+        digest.update(note)
+
+    return digest.digest()
+
+
 # Transaction
 
 def header_digest(tx):
@@ -211,6 +247,7 @@ def txid_digest(tx, version):
     digest.update(transparent_digest(tx))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx, version))
+    digest.update(issuance_digest(tx))
 
     return digest.digest()
 
@@ -225,6 +262,7 @@ def auth_digest(tx):
     digest.update(transparent_scripts_digest(tx))
     digest.update(sapling_auth_digest(tx))
     digest.update(orchard_auth_digest(tx))
+    digest.update(issuance_auth_digest(tx))
 
     return digest.digest()
 
@@ -246,6 +284,7 @@ def signature_digest(tx, t_inputs, nHashType, txin, version):
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx, version))
+    digest.update(issuance_digest(tx))
 
     return digest.digest()
 
@@ -362,8 +401,8 @@ def main():
 
     test_vectors = []
     for _ in range(10):
-        tx = TransactionV5(rand, consensusBranchId)
-        version = NU5_TX_VERSION
+        tx = TransactionV6(rand, consensusBranchId)    # TODO: VA: Make it work for both V5 and V6
+        version = NU6_TX_VERSION    # TODO: VA: Make it work for both V5 and V6
 
         txid = txid_digest(tx, version)
         auth = auth_digest(tx)
