@@ -343,6 +343,37 @@ class TxOut(object):
     def __bytes__(self):
         return struct.pack('<Q', self.nValue) + bytes(self.scriptPubKey)
 
+class AssetBurnDescription(object):
+    def __init__(self, rand):
+        self.AssetBase = PallasBase(leos2ip(rand.b(32)))
+        _temp = rand.u64()
+        self.valueBurn = _temp if _temp != 0 else _temp + 1
+
+    def __bytes__(self):
+        return bytes(self.AssetBase) + struct.pack('<Q', self.valueBurn)
+
+class IssueActionDescription(object):
+    def __init__(self, rand):
+        self.assetDescSize = rand.u32() % 513  # TODO: VA: Can it be 0 too?
+        if self.assetDescSize > 0:
+            self.asset_desc = rand.b(self.assetDescSize)
+        self.vNotes = []
+        for _ in range(rand.u8() % 5):
+            self.vNotes.append(rand.b(596))    # TODO: VA: Do we need a separate IssueNote class?
+        self.flagsIssuance = rand.u8() & 1    # Only one bit is reserved for the finalize flag currently
+
+    def __bytes__(self):
+        ret = b''
+
+        ret += struct.pack('B', int(self.assetDescSize / 256)) + struct.pack('B',self.assetDescSize % 256)
+        ret += bytes(self.asset_desc)
+        ret += write_compact_size(len(self.vNotes))
+        if len(self.vNotes) > 0:
+            for note in self.vNotes:
+                ret += note
+        ret += struct.pack('B', self.flagsIssuance)
+
+        return ret
 
 class LegacyTransaction(object):
     def __init__(self, rand, version):
@@ -590,6 +621,8 @@ class TransactionV6(object):
         have_sapling = (flip_coins >> 2) % 2
         have_orchard_zsa = (flip_coins >> 3) % 2
         is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
+        have_burn = (flip_coins >> 5) % 2
+        have_issuance = (flip_coins >> 6) % 2
 
         # Common Transaction Fields
         self.nVersionGroupId = NU6_VERSION_GROUP_ID
@@ -648,6 +681,20 @@ class TransactionV6(object):
             # If valueBalanceOrchard is not present in the serialized transaction, then
             # v^balanceOrchard is defined to be 0.
             self.valueBalanceOrchard = 0
+
+        # OrchardZSA Burn Fields
+        self.vAssetBurnOrchardZSA = []
+        if have_burn:
+            for _ in range(rand.u8() % 5):
+                self.vAssetBurnOrchardZSA.append(AssetBurnDescription(rand))
+
+        # ZSA Issuance Fields
+        self.vIssueActions = []
+        if have_issuance:
+            for _ in range(rand.u8() % 5):
+                self.vIssueActions.append(IssueActionDescription(rand))
+            self.ik = rand.b(32)
+            self.issueAuthSig = rand.b(64)
 
         assert is_coinbase == self.is_coinbase()
 
@@ -713,6 +760,20 @@ class TransactionV6(object):
             for desc in self.vActionsOrchard:
                 ret += bytes(desc.spendAuthSig)
             ret += bytes(self.bindingSigOrchard)
+
+        # OrchardZSA Burn Fields
+        ret += write_compact_size(len(self.vAssetBurnOrchardZSA))
+        if len(self.vAssetBurnOrchardZSA) > 0:
+            for desc in self.vAssetBurnOrchardZSA:
+                ret += bytes(desc)
+
+        # ZSA Issuance Fields
+        ret += write_compact_size(len(self.vIssueActions))
+        if len(self.vIssueActions) > 0:
+            for desc in self.vIssueActions:
+                ret += bytes(desc)
+            ret += bytes(self.ik)
+            ret += bytes(self.issueAuthSig)
 
         return ret
 
