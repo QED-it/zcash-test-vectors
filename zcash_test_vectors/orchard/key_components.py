@@ -114,6 +114,19 @@ class FullViewingKey(object):
         rivk_internal = to_scalar(prf_expand(K, b'\x83' + i2leosp(256, self.ak.s) + i2leosp(256, self.nk.s)))
         return self.__class__(rivk_internal, self.ak, self.nk)
 
+def key_component_gen(rand):
+    sk = SpendingKey(rand.b(32))
+    fvk = FullViewingKey.from_spending_key(sk)
+    default_d = fvk.default_d()
+    default_pk_d = fvk.default_pkd()
+
+    note_v = rand.u64()
+    note_rho = Fp.random(rand)
+    note_rseed = rand.b(32)
+
+    internal = fvk.internal()
+    return sk, fvk, default_d, default_pk_d, note_v, note_rho, note_rseed, internal
+
 def main():
     args = render_args()
 
@@ -131,14 +144,7 @@ def main():
 
     test_vectors = []
     for _ in range(0, 10):
-        sk = SpendingKey(rand.b(32))
-        fvk = FullViewingKey.from_spending_key(sk)
-        default_d = fvk.default_d()
-        default_pk_d = fvk.default_pkd()
-
-        note_v = rand.u64()
-        note_rho = Fp.random(rand)
-        note_rseed = rand.b(32)
+        (sk,fvk,default_d, default_pk_d, note_v, note_rho, note_rseed, internal) = key_component_gen(rand)
         note = OrchardNote(
             default_d,
             default_pk_d,
@@ -148,8 +154,6 @@ def main():
         )
         note_cm = note.note_commitment()
         note_nf = derive_nullifier(fvk.nk, note_rho, note.psi, note_cm)
-
-        internal = fvk.internal()
         test_vectors.append({
             'sk': sk.data,
             'ask': bytes(sk.ask),

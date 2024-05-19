@@ -31,6 +31,7 @@ def main():
     args = render_args()
 
     from .note import OrchardZSANote
+    from ..orchard.key_components import key_component_gen
     from random import Random
     from ..rand import Rand
 
@@ -46,17 +47,10 @@ def main():
 
     test_vectors = []
     for i in range(0, 10):
-        sk = SpendingKey(rand.b(32))
+        (sk,fvk,default_d, default_pk_d, note_v, note_rho, note_rseed, internal) = key_component_gen(rand)
         isk = IssuanceKeys(rand.b(32))
-        fvk = FullViewingKey.from_spending_key(sk)
-        default_d = fvk.default_d()
-        default_pk_d = fvk.default_pkd()
-
-        note_v = rand.u64()
         is_native = i < 5
         asset_base = native_asset() if is_native else Point.rand(rand)
-        note_rho = Fp.random(rand)
-        note_rseed = rand.b(32)
         note = OrchardZSANote(
             default_d,
             default_pk_d,
@@ -68,7 +62,6 @@ def main():
         note_cm = note.note_commitment()
         note_nf = derive_nullifier(fvk.nk, note_rho, note.psi, note_cm)
 
-        internal = fvk.internal()
         test_vectors.append({
             'sk': sk.data,
             'ask': bytes(sk.ask),
