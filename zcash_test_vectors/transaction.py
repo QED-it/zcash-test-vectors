@@ -325,7 +325,7 @@ class AssetBurnDescription(object):
 
 class IssueActionDescription(object):
     def __init__(self, rand):
-        self.assetDescSize = rand.u32() % 513  # TODO: VA: Can it be 0 too?
+        self.assetDescSize = rand.u32() % 512 + 1
         if self.assetDescSize > 0:
             self.asset_desc = rand.b(self.assetDescSize)
         self.vNotes = []
@@ -592,7 +592,9 @@ class TransactionV6(object):
         have_sapling = (flip_coins >> 2) % 2
         have_orchard_zsa = (flip_coins >> 3) % 2
         is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
-        have_burn = (flip_coins >> 5) % 2
+        have_burn = 0
+        if have_orchard_zsa:
+            have_burn = (flip_coins >> 5) % 2
         have_issuance = (flip_coins >> 6) % 2
 
         # Common Transaction Fields
@@ -640,9 +642,9 @@ class TransactionV6(object):
         if have_orchard_zsa:
             for _ in range(rand.u8() % 5):
                 self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
-            self.flagsOrchard = rand.u8() & 3 # Only two flag bits are currently defined.
+            self.flagsOrchard = rand.u8() & 7 # Only three flag bits are currently defined.
             if is_coinbase:
-                # set enableSpendsOrchard = 0
+                # set enableSpendsOrchard = 0 and enableZSAs = 0
                 self.flagsOrchard &= 2
             self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
             self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
