@@ -32,7 +32,6 @@ tv_scripts=(
     zip_0244
     zip_0316)
 
-
 for generator in "${tv_scripts[@]}"
 do
     echo "# $generator"

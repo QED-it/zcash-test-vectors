@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
-import sys;
-
-assert sys.version_info[0] >= 3, "Python 3 required."
+import sys; assert sys.version_info[0] >= 3, "Python 3 required."
 
 from hashlib import blake2b
 
@@ -42,8 +40,8 @@ class SpendingKey(object):
     def __init__(self, data):
         self.data = data
 
-        self.ask = to_scalar(prf_expand(self.data, b'\x06'))
-        self.nk = to_base(prf_expand(self.data, b'\x07'))
+        self.ask  = to_scalar(prf_expand(self.data, b'\x06'))
+        self.nk   = to_base(prf_expand(self.data, b'\x07'))
         self.rivk = to_scalar(prf_expand(self.data, b'\x08'))
         if self.ask == Scalar.ZERO:
             raise ValueError("invalid spending key")
@@ -65,7 +63,7 @@ class ExtendedSpendingKey(SpendingKey):
     def master(cls, S):
         digest = blake2b(person=b'ZcashIP32Orchard')
         digest.update(S)
-        I = digest.digest()
+        I   = digest.digest()
         I_L = I[:32]
         I_R = I[32:]
         return cls(I_R, I_L)
@@ -73,7 +71,7 @@ class ExtendedSpendingKey(SpendingKey):
     def child(self, i):
         assert 0x80000000 <= i and i <= 0xFFFFFFFF
 
-        I = prf_expand(self.chaincode, b'\x81' + self.data + i2leosp(32, i))
+        I   = prf_expand(self.chaincode, b'\x81' + self.data + i2leosp(32, i))
         I_L = I[:32]
         I_R = I[32:]
         return self.__class__(I_R, I_L)
