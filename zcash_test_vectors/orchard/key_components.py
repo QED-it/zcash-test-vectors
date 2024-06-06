@@ -142,34 +142,34 @@ def main():
 
     test_vectors = []
     for _ in range(0, 10):
-        ki = KeyInit(rand)
+        k = KeyInit(rand)
         note = OrchardNote(
-            ki.default_d,
-            ki.default_pk_d,
-            ki.note_v,
-            ki.note_rho,
-            ki.note_rseed,
+            k.default_d,
+            k.default_pk_d,
+            k.note_v,
+            k.note_rho,
+            k.note_rseed,
         )
         note_cm = note.note_commitment()
-        note_nf = derive_nullifier(ki.fvk.nk, ki.note_rho, note.psi, note_cm)
+        note_nf = derive_nullifier(k.fvk.nk, k.note_rho, note.psi, note_cm)
         test_vectors.append({
-            'sk': ki.sk.data,
-            'ask': bytes(ki.sk.ask),
-            'ak': bytes(ki.fvk.ak),
-            'nk': bytes(ki.fvk.nk),
-            'rivk': bytes(ki.fvk.rivk),
-            'ivk': bytes(ki.fvk.ivk()),
-            'ovk': ki.fvk.ovk,
-            'dk': ki.fvk.dk,
-            'default_d': ki.default_d,
-            'default_pk_d': bytes(ki.default_pk_d),
-            'internal_rivk': bytes(ki.internal.rivk),
-            'internal_ivk': bytes(ki.internal.ivk()),
-            'internal_ovk': ki.internal.ovk,
-            'internal_dk': ki.internal.dk,
-            'note_v': ki.note_v,
-            'note_rho': bytes(ki.note_rho),
-            'note_rseed': bytes(ki.note_rseed),
+            'sk': k.sk.data,
+            'ask': bytes(k.sk.ask),
+            'ak': bytes(k.fvk.ak),
+            'nk': bytes(k.fvk.nk),
+            'rivk': bytes(k.fvk.rivk),
+            'ivk': bytes(k.fvk.ivk()),
+            'ovk': k.fvk.ovk,
+            'dk': k.fvk.dk,
+            'default_d': k.default_d,
+            'default_pk_d': bytes(k.default_pk_d),
+            'internal_rivk': bytes(k.internal.rivk),
+            'internal_ivk': bytes(k.internal.ivk()),
+            'internal_ovk': k.internal.ovk,
+            'internal_dk': k.internal.dk,
+            'note_v': k.note_v,
+            'note_rho': bytes(k.note_rho),
+            'note_rseed': bytes(k.note_rseed),
             'note_cmx': bytes(note_cm.extract()),
             'note_nf': bytes(note_nf),
         })
