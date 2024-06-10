@@ -7,9 +7,11 @@ import struct
 from .transaction import (
     MAX_MONEY,
     NU5_TX_VERSION,
-    NU6_TX_VERSION,
     Script,
     TransactionV5,
+)
+from .transaction_v6 import (
+    NU6_TX_VERSION,
     TransactionV6,
 )
 from .output import render_args, render_tv, Some
