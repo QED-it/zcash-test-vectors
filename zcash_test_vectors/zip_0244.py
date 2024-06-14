@@ -10,10 +10,6 @@ from .transaction import (
     Script,
     TransactionV5,
 )
-from .transaction_v6 import (
-    NU6_TX_VERSION,
-    TransactionV6,
-)
 from .output import render_args, render_tv, Some
 from .rand import Rand
 from .zip_0143 import (
@@ -132,13 +128,13 @@ def sapling_outputs_noncompact_digest(tx):
 
 # Orchard
 
-def orchard_digest(tx, version):
+def orchard_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrchardHash')
 
     if len(tx.vActionsOrchard) > 0:
-        digest.update(orchard_actions_compact_digest(tx, version))
-        digest.update(orchard_actions_memos_digest(tx, version))
-        digest.update(orchard_actions_noncompact_digest(tx, version))
+        digest.update(orchard_actions_compact_digest(tx))
+        digest.update(orchard_actions_memos_digest(tx))
+        digest.update(orchard_actions_noncompact_digest(tx))
         digest.update(struct.pack('<B', tx.flagsOrchard))
         digest.update(struct.pack('<Q', tx.valueBalanceOrchard))
         digest.update(bytes(tx.anchorOrchard))
@@ -158,73 +154,29 @@ def orchard_auth_digest(tx):
 
 # - Actions
 
-def orchard_actions_compact_digest(tx, version):
+def orchard_actions_compact_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActCHash')
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.nullifier))
         digest.update(bytes(desc.cmx))
         digest.update(bytes(desc.ephemeralKey))
-        if version == NU6_TX_VERSION:
-            digest.update(desc.encCiphertext[:84])
-        else:
-            digest.update(desc.encCiphertext[:52])
+        digest.update(desc.encCiphertext[:52])
     return digest.digest()
 
-def orchard_actions_memos_digest(tx, version):
+def orchard_actions_memos_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActMHash')
     for desc in tx.vActionsOrchard:
-        if version == NU6_TX_VERSION:
-            digest.update(desc.encCiphertext[84:596])
-        else:
-            digest.update(desc.encCiphertext[52:564])
+        digest.update(desc.encCiphertext[52:564])
     return digest.digest()
 
-def orchard_actions_noncompact_digest(tx, version):
+def orchard_actions_noncompact_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActNHash')
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.cv))
         digest.update(bytes(desc.rk))
-        if version == NU6_TX_VERSION:
-            digest.update(desc.encCiphertext[596:])
-        else:
-            digest.update(desc.encCiphertext[564:])
+        digest.update(desc.encCiphertext[564:])
         digest.update(desc.outCiphertext)
     return digest.digest()
-
-def issuance_digest(tx):
-    digest = blake2b(digest_size=32, person=b'ZTxIdSAIssueHash')
-
-    if len(tx.vIssueActions) > 0:
-        digest.update(issue_actions_digest(tx))
-        digest.update(bytes(tx.ik))
-
-    return digest.digest()
-
-def issuance_auth_digest(tx):
-    digest = blake2b(digest_size=32, person=b'ZTxAuthZSAOrHash')
-    if len(tx.vIssueActions) > 0:
-        digest.update(tx.issueAuthSig)
-    return digest.digest()
-
-def issue_actions_digest(tx):
-    digest = blake2b(digest_size=32, person=b'ZTxIdIssuActHash')
-
-    for action in tx.vIssueActions:
-        digest.update(issue_notes_digest(action))
-        digest.update(action.asset_desc)
-        digest.update(struct.pack('<B', action.flagsIssuance))
-
-    digest.update(tx.ik)
-    return digest.digest()
-
-def issue_notes_digest(action):
-    digest = blake2b(digest_size=32, person=b'ZTxIdIAcNoteHash')
-
-    for note in action.vNotes:
-        digest.update(note)
-
-    return digest.digest()
-
 
 # Transaction
 
@@ -239,7 +191,7 @@ def header_digest(tx):
 
     return digest.digest()
 
-def txid_digest(tx, version):
+def txid_digest(tx):
     digest = blake2b(
         digest_size=32,
         person=b'ZcashTxHash_' + struct.pack('<I', tx.nConsensusBranchId),
@@ -248,8 +200,7 @@ def txid_digest(tx, version):
     digest.update(header_digest(tx))
     digest.update(transparent_digest(tx))
     digest.update(sapling_digest(tx))
-    digest.update(orchard_digest(tx, version))
-    digest.update(issuance_digest(tx))
+    digest.update(orchard_digest(tx))
 
     return digest.digest()
 
@@ -264,7 +215,6 @@ def auth_digest(tx):
     digest.update(transparent_scripts_digest(tx))
     digest.update(sapling_auth_digest(tx))
     digest.update(orchard_auth_digest(tx))
-    digest.update(issuance_auth_digest(tx))
 
     return digest.digest()
 
@@ -276,7 +226,7 @@ class TransparentInput(object):
         self.scriptPubKey = Script(rand)
         self.amount = rand.u64() % (MAX_MONEY + 1)
 
-def signature_digest(tx, t_inputs, nHashType, txin, version):
+def signature_digest(tx, t_inputs, nHashType, txin):
     digest = blake2b(
         digest_size=32,
         person=b'ZcashTxHash_' + struct.pack('<I', tx.nConsensusBranchId),
@@ -285,8 +235,7 @@ def signature_digest(tx, t_inputs, nHashType, txin, version):
     digest.update(header_digest(tx))
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
     digest.update(sapling_digest(tx))
-    digest.update(orchard_digest(tx, version))
-    digest.update(issuance_digest(tx))
+    digest.update(orchard_digest(tx))
 
     return digest.digest()
 
@@ -403,10 +352,8 @@ def main():
 
     test_vectors = []
     for _ in range(10):
-        tx = TransactionV6(rand, consensusBranchId)    # TODO: VA: Make it work for both V5 and V6
-        version = NU6_TX_VERSION    # TODO: VA: Make it work for both V5 and V6
-
-        txid = txid_digest(tx, version)
+        tx = TransactionV5(rand, consensusBranchId)
+        txid = txid_digest(tx)
         auth = auth_digest(tx)
 
         # Generate amounts and scriptCodes for each non-dummy transparent input.
@@ -421,9 +368,9 @@ def main():
         else:
             txin = None
 
-        sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None, version)
+        sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
         other_sighashes = {
-            nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin, version)
+            nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
             for nHashType in ([
                                   SIGHASH_ALL,
                                   SIGHASH_NONE,
