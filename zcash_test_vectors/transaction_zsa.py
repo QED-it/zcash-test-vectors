@@ -11,8 +11,8 @@ from .transaction import (
     TransactionBase,
 )
 
-NU6_VERSION_GROUP_ID = 0x124A69F8
-NU6_TX_VERSION = 6
+NU7_VERSION_GROUP_ID = 0x124A69F8
+NU7_TX_VERSION = 7
 
 # Orchard ZSA note values
 ZC_ORCHARD_ZSA_ASSET_SIZE = 32
@@ -75,7 +75,7 @@ class IssueActionDescription(object):
 
         return ret
 
-class TransactionV6(TransactionBase):
+class TransactionZSA(TransactionBase):
     def __init__(self, rand, consensus_branch_id, have_orchard_zsa = True, have_burn = True, have_issuance = True):
 
         # Since burn is part of the OrchardZSA bundle, ensure that there are no burn fields
@@ -87,7 +87,7 @@ class TransactionV6(TransactionBase):
         super().__init__(rand)
 
         # Common Transaction Fields that are not in TransactionBase
-        self.nVersionGroupId = NU6_VERSION_GROUP_ID
+        self.nVersionGroupId = NU7_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
 
         # Orchard-ZSA Transaction Fields
@@ -124,7 +124,7 @@ class TransactionV6(TransactionBase):
             self.issueAuthSig = rand.b(64)
 
     def version_bytes(self):
-        return NU6_TX_VERSION | (1 << 31)
+        return NU7_TX_VERSION | (1 << 31)
 
     def orchard_zsa_transfer_field_bytes(self):
         ret = b''

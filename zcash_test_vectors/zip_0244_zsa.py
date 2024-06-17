@@ -11,8 +11,8 @@ from .transaction import (
     TransactionV5,
 )
 from .transaction_zsa import (
-    NU6_TX_VERSION,
-    TransactionV6,
+    NU7_TX_VERSION,
+    TransactionZSA,
 )
 from .output import render_args, render_tv, Some
 from .rand import Rand
@@ -36,7 +36,7 @@ from .zip_0244 import (
 
 # Orchard
 
-def orchard_zsa_digest(tx: TransactionV6):
+def orchard_zsa_digest(tx: TransactionZSA):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrchardHash')
 
     if len(tx.vActionsOrchardZSA) > 0:
@@ -49,7 +49,7 @@ def orchard_zsa_digest(tx: TransactionV6):
 
     return digest.digest()
 
-def orchard_zsa_auth_digest(tx: TransactionV6):
+def orchard_zsa_auth_digest(tx: TransactionZSA):
     digest = blake2b(digest_size=32, person=b'ZTxAuthOrchaHash')
 
     if len(tx.vActionsOrchardZSA) > 0:
@@ -62,7 +62,7 @@ def orchard_zsa_auth_digest(tx: TransactionV6):
 
 # - Actions
 
-def orchard_zsa_actions_compact_digest(tx: TransactionV6):
+def orchard_zsa_actions_compact_digest(tx: TransactionZSA):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActCHash')
     for desc in tx.vActionsOrchardZSA:
         digest.update(bytes(desc.nullifier))
@@ -71,13 +71,13 @@ def orchard_zsa_actions_compact_digest(tx: TransactionV6):
         digest.update(desc.encCiphertext[:84])
     return digest.digest()
 
-def orchard_zsa_actions_memos_digest(tx: TransactionV6):
+def orchard_zsa_actions_memos_digest(tx: TransactionZSA):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActMHash')
     for desc in tx.vActionsOrchardZSA:
         digest.update(desc.encCiphertext[84:596])
     return digest.digest()
 
-def orchard_zsa_actions_noncompact_digest(tx: TransactionV6):
+def orchard_zsa_actions_noncompact_digest(tx: TransactionZSA):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActNHash')
     for desc in tx.vActionsOrchardZSA:
         digest.update(bytes(desc.cv))
@@ -123,7 +123,7 @@ def issue_notes_digest(action):
 
 # Transaction
 
-def txid_digest(tx: TransactionV6):
+def txid_digest(tx: TransactionZSA):
     digest = blake2b(
         digest_size=32,
         person=b'ZcashTxHash_' + struct.pack('<I', tx.nConsensusBranchId),
@@ -139,7 +139,7 @@ def txid_digest(tx: TransactionV6):
 
 # Authorizing Data Commitment
 
-def auth_digest(tx: TransactionV6):
+def auth_digest(tx: TransactionZSA):
     digest = blake2b(
         digest_size=32,
         person=b'ZTxAuthHash_' + struct.pack('<I', tx.nConsensusBranchId),
@@ -154,7 +154,7 @@ def auth_digest(tx: TransactionV6):
 
 # Signatures
 
-def signature_digest(tx: TransactionV6, t_inputs, nHashType, txin):
+def signature_digest(tx: TransactionZSA, t_inputs, nHashType, txin):
     digest = blake2b(
         digest_size=32,
         person=b'ZcashTxHash_' + struct.pack('<I', tx.nConsensusBranchId),
@@ -180,12 +180,12 @@ def main():
         return bytes(ret)
     rand = Rand(randbytes)
 
-    consensusBranchId = 0xc2d6d0b4 # NU5
+    consensusBranchId = 0x77777777 # NU7
 
     test_vectors = []
-    for _ in range(10):
-        tx = TransactionV6(rand, consensusBranchId)
-
+    allowed_choices = [[False,False,False],[False,False,True],[True,False,False],[True,False,True],[True,True,False],[True,True,True]]
+    for choice in allowed_choices:
+        tx = TransactionZSA(rand, consensusBranchId, choice[0], choice[1], choice[2])
         txid = txid_digest(tx)
         auth = auth_digest(tx)
 
