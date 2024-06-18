@@ -468,8 +468,8 @@ class TransactionBase(object):
         ret = b''
 
         # Common Transaction Fields
-        ret += struct.pack('<I', self.nLockTime)
-        ret += struct.pack('<I', self.nExpiryHeight)
+        # ret += struct.pack('<I', self.nLockTime)
+        # ret += struct.pack('<I', self.nExpiryHeight)
 
         # Transparent Transaction Fields
         ret += write_compact_size(len(self.vin))
@@ -507,16 +507,19 @@ class TransactionBase(object):
 class TransactionV5(TransactionBase):
     def __init__(self, rand, consensus_branch_id):
 
-        # Many of the Common Transaction Fields, and all Transparent and Sapling Transaction Fields
-        # are initialized in the super class.
+        # All Transparent and Sapling Transaction Fields are initialized in the super class.
         super().__init__(rand)
         have_orchard = rand.bool()
 
-        # Common Transaction Fields (remaining, V5 specific)
+        # Common Transaction Fields
         self.nVersionGroupId = NU5_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
 
-        # Orchard Transaction Fields
+        # self.nLockTime = rand.u32()
+        # self.nExpiryHeight = rand.u32() % TX_EXPIRY_HEIGHT_THRESHOLD
+
+
+    # Orchard Transaction Fields
         self.vActionsOrchard = []
         if have_orchard:
             for _ in range(rand.u8() % 5):
@@ -563,6 +566,9 @@ class TransactionV5(TransactionBase):
         ret += struct.pack('<I', self.version_bytes())
         ret += struct.pack('<I', self.nVersionGroupId)
         ret += struct.pack('<I', self.nConsensusBranchId)
+        ret += struct.pack('<I', self.nLockTime)
+        ret += struct.pack('<I', self.nExpiryHeight)
+
 
         # Fields that are in TransactionBase: Common, Transparent, Sapling
         ret += super().__bytes__()

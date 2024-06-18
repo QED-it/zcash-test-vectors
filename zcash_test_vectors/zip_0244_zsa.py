@@ -12,7 +12,7 @@ from .transaction import (
 )
 from .transaction_zsa import (
     NU7_TX_VERSION,
-    TransactionZSA,
+    TransactionZSA, IssueActionDescription,
 )
 from .output import render_args, render_tv, Some
 from .rand import Rand
@@ -27,11 +27,8 @@ from .zip_0143 import (
 )
 from .zip_0244 import (
     transparent_digest, transparent_scripts_digest,
-    sapling_digest, sapling_auth_digest, sapling_spends_digest, sapling_spends_compact_digest,
-    sapling_spends_noncompact_digest, sapling_outputs_digest, sapling_outputs_compact_digest,
-    sapling_outputs_memos_digest, sapling_outputs_noncompact_digest,
-    header_digest, TransparentInput, transparent_sig_digest, hash_type, prevouts_sig_digest, amounts_sig_digest,
-    scriptpubkeys_sig_digest, sequence_sig_digest, outputs_sig_digest, txin_sig_digest
+    sapling_digest, sapling_auth_digest,
+    header_digest, TransparentInput, transparent_sig_digest,
 )
 
 # Orchard
@@ -43,6 +40,7 @@ def orchard_zsa_digest(tx: TransactionZSA):
         digest.update(orchard_zsa_actions_compact_digest(tx))
         digest.update(orchard_zsa_actions_memos_digest(tx))
         digest.update(orchard_zsa_actions_noncompact_digest(tx))
+        digest.update(orchard_zsa_burn_digest(tx))
         digest.update(struct.pack('<B', tx.flagsOrchardZSA))
         digest.update(struct.pack('<Q', tx.valueBalanceOrchardZSA))
         digest.update(bytes(tx.anchorOrchardZSA))
@@ -86,6 +84,16 @@ def orchard_zsa_actions_noncompact_digest(tx: TransactionZSA):
         digest.update(desc.outCiphertext)
     return digest.digest()
 
+def orchard_zsa_burn_digest(tx: TransactionZSA):
+    digest = blake2b(digest_size=32, person=b'ZTxIdOrcBurnHash')
+
+    if len(tx.vAssetBurnOrchardZSA) > 0:
+        for desc in tx.vAssetBurnOrchardZSA:
+            digest.update(bytes(desc.AssetBase))
+            digest.update(struct.pack('<Q', desc.valueBurn))
+
+    return digest.digest()
+
 def issuance_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdSAIssueHash')
 
@@ -109,14 +117,17 @@ def issue_actions_digest(tx):
         digest.update(action.asset_desc)
         digest.update(struct.pack('<B', action.flagsIssuance))
 
-    digest.update(tx.ik)
     return digest.digest()
 
-def issue_notes_digest(action):
+def issue_notes_digest(action: IssueActionDescription):
     digest = blake2b(digest_size=32, person=b'ZTxIdIAcNoteHash')
 
     for note in action.vNotes:
-        digest.update(note)
+        digest.update(bytes(note.recipient))
+        digest.update(struct.pack('<Q', note.value))
+        digest.update(bytes(note.assetBase))
+        digest.update(bytes(note.rho))
+        digest.update(note.rseed)
 
     return digest.digest()
 
@@ -185,7 +196,9 @@ def main():
     test_vectors = []
     allowed_choices = [[False,False,False],[False,False,True],[True,False,False],[True,False,True],[True,True,False],[True,True,True]]
     for choice in allowed_choices:
+    # for _ in range(10):
         tx = TransactionZSA(rand, consensusBranchId, choice[0], choice[1], choice[2])
+        # tx = TransactionZSA(rand, consensusBranchId, False, False, True)
         txid = txid_digest(tx)
         auth = auth_digest(tx)
 
