@@ -4,22 +4,12 @@ import sys; assert sys.version_info[0] >= 3, "Python 3 required."
 from hashlib import blake2b
 import struct
 
-from .transaction import (
-    MAX_MONEY,
-    NU5_TX_VERSION,
-    Script,
-    TransactionV5,
-)
 from .transaction_zsa import (
-    NU7_TX_VERSION,
     TransactionZSA, IssueActionDescription,
 )
-from .output import render_args, render_tv, Some
+from .output import render_args, render_tv
 from .rand import Rand
 from .zip_0143 import (
-    getHashOutputs,
-    getHashPrevouts,
-    getHashSequence,
     SIGHASH_ALL,
     SIGHASH_ANYONECANPAY,
     SIGHASH_NONE,
@@ -89,7 +79,7 @@ def orchard_zsa_burn_digest(tx: TransactionZSA):
 
     if len(tx.vAssetBurnOrchardZSA) > 0:
         for desc in tx.vAssetBurnOrchardZSA:
-            digest.update(bytes(desc.AssetBase))
+            digest.update(bytes(desc.assetBase))
             digest.update(struct.pack('<Q', desc.valueBurn))
 
     return digest.digest()
@@ -99,7 +89,7 @@ def issuance_digest(tx):
 
     if len(tx.vIssueActions) > 0:
         digest.update(issue_actions_digest(tx))
-        digest.update(bytes(tx.ik))
+        digest.update(tx.ik)
 
     return digest.digest()
 
@@ -194,59 +184,59 @@ def main():
     consensusBranchId = 0x77777777 # NU7
 
     test_vectors = []
-    allowed_choices = [[False,False,False],[False,False,True],[True,False,False],[True,False,True],[True,True,False],[True,True,True]]
+    allowed_choices = [[False, False, False], [False, False, True], [True, False, False],
+                       [True, False, True], [True, True, False], [True, True, True]]
     for choice in allowed_choices:
-    # for _ in range(10):
-        tx = TransactionZSA(rand, consensusBranchId, choice[0], choice[1], choice[2])
-        # tx = TransactionZSA(rand, consensusBranchId, False, False, True)
-        txid = txid_digest(tx)
-        auth = auth_digest(tx)
+        for _ in range(2):
+            tx = TransactionZSA(rand, consensusBranchId, choice[0], choice[1], choice[2])
+            txid = txid_digest(tx)
+            auth = auth_digest(tx)
 
-        # Generate amounts and scriptCodes for each non-dummy transparent input.
-        if tx.is_coinbase():
-            t_inputs = []
-        else:
-            t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(tx.vin))]
+            # Generate amounts and scriptCodes for each non-dummy transparent input.
+            if tx.is_coinbase():
+                t_inputs = []
+            else:
+                t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(tx.vin))]
 
-        # If there are any non-dummy transparent inputs, derive a corresponding transparent sighash.
-        if len(t_inputs) > 0:
-            txin = rand.a(t_inputs)
-        else:
-            txin = None
+            # If there are any non-dummy transparent inputs, derive a corresponding transparent sighash.
+            if len(t_inputs) > 0:
+                txin = rand.a(t_inputs)
+            else:
+                txin = None
 
-        sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
-        other_sighashes = {
-            nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
-            for nHashType in ([
-                                  SIGHASH_ALL,
-                                  SIGHASH_NONE,
-                                  SIGHASH_SINGLE,
-                                  SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                                  SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                                  SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
-                                  ] if txin is None or txin.nIn < len(tx.vout) else [
-                SIGHASH_ALL,
-                SIGHASH_NONE,
-                SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                ])
-        }
+            sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
+            other_sighashes = {
+                nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
+                for nHashType in ([
+                                      SIGHASH_ALL,
+                                      SIGHASH_NONE,
+                                      SIGHASH_SINGLE,
+                                      SIGHASH_ALL | SIGHASH_ANYONECANPAY,
+                                      SIGHASH_NONE | SIGHASH_ANYONECANPAY,
+                                      SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
+                                      ] if txin is None or txin.nIn < len(tx.vout) else [
+                    SIGHASH_ALL,
+                    SIGHASH_NONE,
+                    SIGHASH_ALL | SIGHASH_ANYONECANPAY,
+                    SIGHASH_NONE | SIGHASH_ANYONECANPAY,
+                    ])
+            }
 
-        test_vectors.append({
-            'tx': bytes(tx),
-            'txid': txid,
-            'auth_digest': auth,
-            'amounts': [x.amount for x in t_inputs],
-            'script_pubkeys': [x.scriptPubKey.raw() for x in t_inputs],
-            'transparent_input': None if txin is None else txin.nIn,
-            'sighash_shielded': sighash_shielded,
-            'sighash_all': other_sighashes.get(SIGHASH_ALL),
-            'sighash_none': other_sighashes.get(SIGHASH_NONE),
-            'sighash_single': other_sighashes.get(SIGHASH_SINGLE),
-            'sighash_all_anyone': other_sighashes.get(SIGHASH_ALL | SIGHASH_ANYONECANPAY),
-            'sighash_none_anyone': other_sighashes.get(SIGHASH_NONE | SIGHASH_ANYONECANPAY),
-            'sighash_single_anyone': other_sighashes.get(SIGHASH_SINGLE | SIGHASH_ANYONECANPAY),
-        })
+            test_vectors.append({
+                'tx': bytes(tx),
+                'txid': txid,
+                'auth_digest': auth,
+                'amounts': [x.amount for x in t_inputs],
+                'script_pubkeys': [x.scriptPubKey.raw() for x in t_inputs],
+                'transparent_input': None if txin is None else txin.nIn,
+                'sighash_shielded': sighash_shielded,
+                'sighash_all': other_sighashes.get(SIGHASH_ALL),
+                'sighash_none': other_sighashes.get(SIGHASH_NONE),
+                'sighash_single': other_sighashes.get(SIGHASH_SINGLE),
+                'sighash_all_anyone': other_sighashes.get(SIGHASH_ALL | SIGHASH_ANYONECANPAY),
+                'sighash_none_anyone': other_sighashes.get(SIGHASH_NONE | SIGHASH_ANYONECANPAY),
+                'sighash_single_anyone': other_sighashes.get(SIGHASH_SINGLE | SIGHASH_ANYONECANPAY),
+            })
 
     render_tv(
         args,

@@ -1,19 +1,20 @@
 import struct
 
 from .orchard.key_components import FullViewingKey, SpendingKey
+from .orchard_zsa.key_components import IssuanceKeys
 from .orchard.pallas import (
     Fp as PallasBase,
     Point
 )
 from .orchard.sinsemilla import group_hash as pallas_group_hash
-from .orchard_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id
+from .orchard_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes
 from .utils import leos2ip
 from .zc_utils import write_compact_size
 from .transaction import (
     MAX_MONEY, NOTEENCRYPTION_AUTH_BYTES,
     ZC_SAPLING_ENCPLAINTEXT_SIZE, ZC_SAPLING_OUTCIPHERTEXT_SIZE,
     RedPallasSignature,
-    TransactionBase, TX_EXPIRY_HEIGHT_THRESHOLD,
+    TransactionBase,
 )
 
 NU7_VERSION_GROUP_ID = 0x124A69F8
@@ -50,27 +51,29 @@ class OrchardZSAActionDescription(object):
 
 class AssetBurnDescription(object):
     def __init__(self, rand):
-        self.AssetBase = PallasBase(leos2ip(rand.b(32)))
-        _temp = rand.u64()
-        self.valueBurn = _temp if _temp != 0 else _temp + 1
+
+        isk = IssuanceKeys(rand.b(32))
+        desc_size = rand.u32() % 512 + 1
+        desc_bytes = get_random_unicode_bytes(desc_size, rand)
+        self.assetBase : Point = zsa_value_base(asset_digest(encode_asset_id(isk.ik, desc_bytes)))
+        self.valueBurn = (rand.u64() % MAX_MONEY) + 1 # TODO: decide which way to generate values
 
     def __bytes__(self):
-        return bytes(self.AssetBase) + struct.pack('<Q', self.valueBurn)
+        return bytes(self.assetBase) + struct.pack('<Q', self.valueBurn)
 
 class IssueActionDescription(object):
     def __init__(self, rand, ik):
         self.assetDescSize = rand.u32() % 512 + 1
-        if self.assetDescSize > 0:
-            self.asset_desc = rand.b(self.assetDescSize)
+        self.asset_desc = get_random_unicode_bytes(self.assetDescSize, rand)
         self.vNotes = []
         for _ in range(rand.u8() % 5):
-            self.vNotes.append(IssueNote(rand, ik, self.asset_desc))    # TODO: VA: Do we need a separate IssueNote class?
+            self.vNotes.append(IssueNote(rand, ik, self.asset_desc))
         self.flagsIssuance = rand.u8() & 1    # Only one bit is reserved for the finalize flag currently
 
     def __bytes__(self):
         ret = b''
 
-        ret += struct.pack('B', int(self.assetDescSize / 256)) + struct.pack('B',self.assetDescSize % 256)
+        ret += write_compact_size(self.assetDescSize)
         ret += bytes(self.asset_desc)
         ret += write_compact_size(len(self.vNotes))
         if len(self.vNotes) > 0:
@@ -84,8 +87,7 @@ class IssueNote(object):
     def __init__(self, rand, ik, asset_desc):
         fvk_r = FullViewingKey.from_spending_key(SpendingKey(rand.b(32)))
         self.recipient = fvk_r.default_d() + bytes(fvk_r.default_pkd())
-        _temp = rand.u64()
-        self.value = _temp if _temp != 0 else _temp + 1
+        self.value = rand.u64() % (MAX_MONEY + 1) # TODO: decide which way to generate values
         self.assetBase = zsa_value_base(asset_digest(encode_asset_id(ik, asset_desc)))
         self.rho = Point.rand(rand).extract()
         self.rseed = rand.b(32)
@@ -126,6 +128,7 @@ class TransactionZSA(TransactionBase):
             for _ in range(rand.u8() % 5):
                 self.vActionsOrchardZSA.append(OrchardZSAActionDescription(rand))
             self.flagsOrchardZSA = rand.u8() & 7 # Only three flag bits are currently defined.
+            self.flagsOrchardZSA |= 4  # Setting enableZSAs to true for these tests
             if self.is_coinbase():
                 # set enableSpendsOrchard = 0
                 self.flagsOrchardZSA &= 2
@@ -148,7 +151,7 @@ class TransactionZSA(TransactionBase):
         # ZSA Issuance Fields
         self.vIssueActions = []
         if have_issuance:
-            self.ik = rand.b(32)
+            self.ik = IssuanceKeys(rand.b(32)).ik
             for _ in range(rand.u8() % 5):
                 self.vIssueActions.append(IssueActionDescription(rand, self.ik))
             self.issueAuthSig = rand.b(64)
@@ -171,6 +174,10 @@ class TransactionZSA(TransactionBase):
             ret += self.proofsOrchardZSA
             for desc in self.vActionsOrchardZSA:
                 ret += bytes(desc.spendAuthSig)
+
+            # OrchardZSA Burn Fields
+            ret += self.orchard_zsa_burn_field_bytes()
+
             ret += bytes(self.bindingSigOrchardZSA)
         return ret
 
@@ -188,7 +195,7 @@ class TransactionZSA(TransactionBase):
         if len(self.vIssueActions) > 0:
             for desc in self.vIssueActions:
                 ret += bytes(desc)
-            ret += bytes(self.ik)
+            ret += self.ik
             ret += bytes(self.issueAuthSig)
         return ret
 
@@ -209,9 +216,6 @@ class TransactionZSA(TransactionBase):
 
         # OrchardZSA Transaction Fields
         ret += self.orchard_zsa_transfer_field_bytes()
-
-        # OrchardZSA Burn Fields
-        ret += self.orchard_zsa_burn_field_bytes()
 
         # ZSA Issuance Fields
         ret += self.issuance_field_bytes()
