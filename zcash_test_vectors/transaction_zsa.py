@@ -56,7 +56,7 @@ class AssetBurnDescription(object):
         desc_size = rand.u32() % 512 + 1
         desc_bytes = get_random_unicode_bytes(desc_size, rand)
         self.assetBase : Point = zsa_value_base(asset_digest(encode_asset_id(isk.ik, desc_bytes)))
-        self.valueBurn = (rand.u64() % MAX_MONEY) + 1 # TODO: decide which way to generate values
+        self.valueBurn = rand.u64()
 
     def __bytes__(self):
         return bytes(self.assetBase) + struct.pack('<Q', self.valueBurn)
@@ -87,7 +87,7 @@ class IssueNote(object):
     def __init__(self, rand, ik, asset_desc):
         fvk_r = FullViewingKey.from_spending_key(SpendingKey(rand.b(32)))
         self.recipient = fvk_r.default_d() + bytes(fvk_r.default_pkd())
-        self.value = rand.u64() % (MAX_MONEY + 1) # TODO: decide which way to generate values
+        self.value = rand.u64()
         self.assetBase = zsa_value_base(asset_digest(encode_asset_id(ik, asset_desc)))
         self.rho = Point.rand(rand).extract()
         self.rseed = rand.b(32)
@@ -116,11 +116,6 @@ class TransactionZSA(TransactionBase):
         # Common Transaction Fields
         self.nVersionGroupId = NU7_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
-
-        # self.nLockTime = rand.u32()
-        # self.nExpiryHeight = rand.u32() % TX_EXPIRY_HEIGHT_THRESHOLD
-
-        # self.fees = rand.u64() % (MAX_MONEY + 1)
 
         # Orchard-ZSA Transaction Fields
         self.vActionsOrchardZSA = []
@@ -208,8 +203,6 @@ class TransactionZSA(TransactionBase):
         ret += struct.pack('<I', self.nConsensusBranchId)
         ret += struct.pack('<I', self.nLockTime)
         ret += struct.pack('<I', self.nExpiryHeight)
-
-        # ret += struct.pack('<Q', self.fees)
 
         # Fields that are in TransactionBase: Transparent, Sapling
         ret += super().__bytes__()

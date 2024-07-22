@@ -6,7 +6,6 @@ import struct
 
 from .transaction import (
     MAX_MONEY,
-    NU5_TX_VERSION,
     Script,
     TransactionV5,
 )

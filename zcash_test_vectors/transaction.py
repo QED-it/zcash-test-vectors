@@ -467,10 +467,6 @@ class TransactionBase(object):
     def __bytes__(self):
         ret = b''
 
-        # Common Transaction Fields
-        # ret += struct.pack('<I', self.nLockTime)
-        # ret += struct.pack('<I', self.nExpiryHeight)
-
         # Transparent Transaction Fields
         ret += write_compact_size(len(self.vin))
         for x in self.vin:
@@ -515,11 +511,7 @@ class TransactionV5(TransactionBase):
         self.nVersionGroupId = NU5_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
 
-        # self.nLockTime = rand.u32()
-        # self.nExpiryHeight = rand.u32() % TX_EXPIRY_HEIGHT_THRESHOLD
-
-
-    # Orchard Transaction Fields
+        # Orchard Transaction Fields
         self.vActionsOrchard = []
         if have_orchard:
             for _ in range(rand.u8() % 5):
@@ -558,11 +550,10 @@ class TransactionV5(TransactionBase):
             ret += bytes(self.bindingSigOrchard)
         return ret
 
-    # TODO: Update ZIP 225 to document endianness
     def __bytes__(self):
         ret = b''
 
-        # Common Transaction Fields that are not in TransactionBase
+        # Common Transaction Fields
         ret += struct.pack('<I', self.version_bytes())
         ret += struct.pack('<I', self.nVersionGroupId)
         ret += struct.pack('<I', self.nConsensusBranchId)
