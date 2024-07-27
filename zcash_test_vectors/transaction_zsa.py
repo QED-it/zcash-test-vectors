@@ -2,10 +2,7 @@ import struct
 
 from .orchard.key_components import FullViewingKey, SpendingKey
 from .orchard_zsa.key_components import IssuanceKeys
-from .orchard.pallas import (
-    Fp as PallasBase,
-    Point
-)
+from .orchard.pallas import Fp as PallasBase, Point
 from .orchard.sinsemilla import group_hash as pallas_group_hash
 from .orchard_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes
 from .utils import leos2ip
