@@ -30,10 +30,8 @@ def zsa_value_base(asset_digest_value):
 
 
 def get_random_unicode_bytes(length, rand):
-    try:
-        get_char = unichr
-    except NameError:
-        get_char = chr
+
+    get_char = chr
 
     random.seed(rand.u8())
 
