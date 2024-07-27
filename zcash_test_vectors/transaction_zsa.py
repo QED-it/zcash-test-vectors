@@ -48,11 +48,11 @@ class OrchardZSAActionDescription(object):
 
 class AssetBurnDescription(object):
     def __init__(self, rand):
-
         isk = IssuanceKeys(rand.b(32))
         desc_size = rand.u32() % 512 + 1
         desc_bytes = get_random_unicode_bytes(desc_size, rand)
-        self.assetBase : Point = zsa_value_base(asset_digest(encode_asset_id(isk.ik, desc_bytes)))
+        asset_digest_bytes = asset_digest(encode_asset_id(isk.ik, desc_bytes))
+        self.assetBase : Point = zsa_value_base(asset_digest_bytes)
         self.valueBurn = rand.u64()
 
     def __bytes__(self):
@@ -85,7 +85,8 @@ class IssueNote(object):
         fvk_r = FullViewingKey.from_spending_key(SpendingKey(rand.b(32)))
         self.recipient = fvk_r.default_d() + bytes(fvk_r.default_pkd())
         self.value = rand.u64()
-        self.assetBase = zsa_value_base(asset_digest(encode_asset_id(ik, asset_desc)))
+        asset_digest_bytes = asset_digest(encode_asset_id(ik, asset_desc))
+        self.assetBase = zsa_value_base(asset_digest_bytes)
         self.rho = Point.rand(rand).extract()
         self.rseed = rand.b(32)
 
