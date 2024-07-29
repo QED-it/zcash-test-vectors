@@ -195,15 +195,8 @@ class TransactionZSA(TransactionBase):
     def __bytes__(self):
         ret = b''
 
-        # Common Transaction Fields
-        ret += struct.pack('<I', self.version_bytes())
-        ret += struct.pack('<I', self.nVersionGroupId)
-        ret += struct.pack('<I', self.nConsensusBranchId)
-        ret += struct.pack('<I', self.nLockTime)
-        ret += struct.pack('<I', self.nExpiryHeight)
-
-        # Fields that are in TransactionBase: Transparent, Sapling
-        ret += super().__bytes__()
+        # Fields that are in TransactionBase: Common, Transparent, Sapling
+        ret += super().__bytes__(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
         # OrchardZSA Transaction Fields
         ret += self.orchard_zsa_transfer_field_bytes()

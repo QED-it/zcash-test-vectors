@@ -464,8 +464,15 @@ class TransactionBase(object):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
 
-    def __bytes__(self):
+    def __bytes__(self, version_bytes, nVersionGroupId, nConsensusBranchId):
         ret = b''
+
+        # Common Transaction Fields
+        ret += struct.pack('<I', version_bytes)
+        ret += struct.pack('<I', nVersionGroupId)
+        ret += struct.pack('<I', nConsensusBranchId)
+        ret += struct.pack('<I', self.nLockTime)
+        ret += struct.pack('<I', self.nExpiryHeight)
 
         # Transparent Transaction Fields
         ret += write_compact_size(len(self.vin))
@@ -553,16 +560,8 @@ class TransactionV5(TransactionBase):
     def __bytes__(self):
         ret = b''
 
-        # Common Transaction Fields
-        ret += struct.pack('<I', self.version_bytes())
-        ret += struct.pack('<I', self.nVersionGroupId)
-        ret += struct.pack('<I', self.nConsensusBranchId)
-        ret += struct.pack('<I', self.nLockTime)
-        ret += struct.pack('<I', self.nExpiryHeight)
-
-
         # Fields that are in TransactionBase: Common, Transparent, Sapling
-        ret += super().__bytes__()
+        ret += super().__bytes__(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
         # Orchard Transaction Fields
         ret += self.orchard_txn_field_bytes()
