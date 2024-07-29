@@ -10,6 +10,7 @@ from .zc_utils import write_compact_size
 from .transaction import (
     MAX_MONEY, NOTEENCRYPTION_AUTH_BYTES,
     ZC_SAPLING_ENCPLAINTEXT_SIZE, ZC_SAPLING_OUTCIPHERTEXT_SIZE,
+    OrchardActionBase,
     RedPallasSignature,
     TransactionBase,
 )
@@ -22,29 +23,9 @@ ZC_ORCHARD_ZSA_ASSET_SIZE = 32
 ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE = ZC_SAPLING_ENCPLAINTEXT_SIZE + ZC_ORCHARD_ZSA_ASSET_SIZE
 ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE = ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE + NOTEENCRYPTION_AUTH_BYTES
 
-class OrchardZSAActionDescription(object):
+class OrchardZSAActionDescription(OrchardActionBase):
     def __init__(self, rand):
-        # We don't need to take account of whether this is a coinbase transaction,
-        # because we're only generating random fields.
-        self.cv = pallas_group_hash(b'TVRandPt', rand.b(32))
-        self.nullifier = PallasBase(leos2ip(rand.b(32)))
-        self.rk = pallas_group_hash(b'TVRandPt', rand.b(32))
-        self.cmx = PallasBase(leos2ip(rand.b(32)))
-        self.ephemeralKey = pallas_group_hash(b'TVRandPt', rand.b(32))
-        self.encCiphertext = rand.b(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE)
-        self.outCiphertext = rand.b(ZC_SAPLING_OUTCIPHERTEXT_SIZE)
-        self.spendAuthSig = RedPallasSignature(rand)
-
-    def __bytes__(self):
-        return (
-                bytes(self.cv) +
-                bytes(self.nullifier) +
-                bytes(self.rk) +
-                bytes(self.cmx) +
-                bytes(self.ephemeralKey) +
-                self.encCiphertext +
-                self.outCiphertext
-        )
+        super().__init__(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE, rand)
 
 class AssetBurnDescription(object):
     def __init__(self, rand):

@@ -158,8 +158,8 @@ class OutputDescription(object):
             bytes(self.proof)
         )
 
-class OrchardActionDescription(object):
-    def __init__(self, rand):
+class OrchardActionBase(object):
+    def __init__(self, enc_ciphertext_size, rand):
         # We don't need to take account of whether this is a coinbase transaction,
         # because we're only generating random fields.
         self.cv = pallas_group_hash(b'TVRandPt', rand.b(32))
@@ -167,7 +167,7 @@ class OrchardActionDescription(object):
         self.rk = pallas_group_hash(b'TVRandPt', rand.b(32))
         self.cmx = PallasBase(leos2ip(rand.b(32)))
         self.ephemeralKey = pallas_group_hash(b'TVRandPt', rand.b(32))
-        self.encCiphertext = rand.b(ZC_SAPLING_ENCCIPHERTEXT_SIZE)
+        self.encCiphertext = rand.b(enc_ciphertext_size)
         self.outCiphertext = rand.b(ZC_SAPLING_OUTCIPHERTEXT_SIZE)
         self.spendAuthSig = RedPallasSignature(rand)
 
@@ -181,6 +181,10 @@ class OrchardActionDescription(object):
             self.encCiphertext +
             self.outCiphertext
         )
+
+class OrchardActionDescription(OrchardActionBase):
+    def __init__(self, rand):
+        super().__init__(ZC_SAPLING_ENCCIPHERTEXT_SIZE, rand)
 
 class JoinSplit(object):
     def __init__(self, rand, fUseGroth = False):
