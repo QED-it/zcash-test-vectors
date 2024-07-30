@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-import sys; assert sys.version_info[0] >= 3, "Python 3 required."
+import sys;
+
+from zcash_test_vectors.transaction_zsa import NU7_VERSION_GROUP_ID
+from zcash_test_vectors.zip_0244_zsa import orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
+
+assert sys.version_info[0] >= 3, "Python 3 required."
 
 from hashlib import blake2b
 import struct
@@ -134,6 +139,8 @@ def orchard_digest(tx):
         digest.update(orchard_actions_compact_digest(tx))
         digest.update(orchard_actions_memos_digest(tx))
         digest.update(orchard_actions_noncompact_digest(tx))
+        if tx.nVersionGroupId == NU7_VERSION_GROUP_ID:
+            digest.update(orchard_zsa_burn_digest(tx))
         digest.update(struct.pack('<B', tx.flagsOrchard))
         digest.update(struct.pack('<Q', tx.valueBalanceOrchard))
         digest.update(bytes(tx.anchorOrchard))
@@ -155,25 +162,28 @@ def orchard_auth_digest(tx):
 
 def orchard_actions_compact_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActCHash')
+    offset = 32 if tx.nVersionGroupId == NU7_VERSION_GROUP_ID else 0
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.nullifier))
         digest.update(bytes(desc.cmx))
         digest.update(bytes(desc.ephemeralKey))
-        digest.update(desc.encCiphertext[:52])
+        digest.update(desc.encCiphertext[:52+offset])
     return digest.digest()
 
 def orchard_actions_memos_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActMHash')
+    offset = 32 if tx.nVersionGroupId == NU7_VERSION_GROUP_ID else 0
     for desc in tx.vActionsOrchard:
-        digest.update(desc.encCiphertext[52:564])
+        digest.update(desc.encCiphertext[52+offset:564+offset])
     return digest.digest()
 
 def orchard_actions_noncompact_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActNHash')
+    offset = 32 if tx.nVersionGroupId == NU7_VERSION_GROUP_ID else 0
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.cv))
         digest.update(bytes(desc.rk))
-        digest.update(desc.encCiphertext[564:])
+        digest.update(desc.encCiphertext[564+offset:])
         digest.update(desc.outCiphertext)
     return digest.digest()
 
@@ -200,6 +210,8 @@ def txid_digest(tx):
     digest.update(transparent_digest(tx))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx))
+    if tx.nVersionGroupId == NU7_VERSION_GROUP_ID:
+        digest.update(issuance_digest(tx))
 
     return digest.digest()
 
@@ -214,6 +226,8 @@ def auth_digest(tx):
     digest.update(transparent_scripts_digest(tx))
     digest.update(sapling_auth_digest(tx))
     digest.update(orchard_auth_digest(tx))
+    if tx.nVersionGroupId == NU7_VERSION_GROUP_ID:
+        digest.update(issuance_auth_digest(tx))
 
     return digest.digest()
 
@@ -235,6 +249,8 @@ def signature_digest(tx, t_inputs, nHashType, txin):
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx))
+    if tx.nVersionGroupId == NU7_VERSION_GROUP_ID:
+        digest.update(issuance_digest(tx))
 
     return digest.digest()
 

@@ -416,7 +416,7 @@ class LegacyTransaction(object):
 
 # Creating a base transaction class with common fields that V5 and subsequent versions can inherit.
 class TransactionBase(object):
-    def __init__(self, rand):
+    def __init__(self, rand, have_orchard=True):
         # Decide which transaction parts will be generated.
         flip_coins = rand.u8()
         have_transparent_in = (flip_coins >> 0) % 2
@@ -464,6 +464,19 @@ class TransactionBase(object):
 
         assert is_coinbase == self.is_coinbase()
 
+        # Orchard Transaction Fields that are present in both V5 and V6
+        self.vActionsOrchard = []
+        if have_orchard:
+            self.flagsOrchard = rand.u8()  # This needs to be constrained correctly in the child classes.
+            self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
+            self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
+            self.proofsOrchard = rand.b(rand.u8() + 32) # Proof will always contain at least one element
+            self.bindingSigOrchard = RedPallasSignature(rand)
+        else:
+            # If valueBalanceOrchard is not present in the serialized transaction, then
+            # v^balanceOrchard is defined to be 0.
+            self.valueBalanceOrchard = 0
+
     def is_coinbase(self):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
@@ -509,42 +522,7 @@ class TransactionBase(object):
         if hasSapling:
             ret += bytes(self.bindingSigSapling)
 
-        return ret
-
-class TransactionV5(TransactionBase):
-    def __init__(self, rand, consensus_branch_id):
-
-        # All Transparent and Sapling Transaction Fields are initialized in the super class.
-        super().__init__(rand)
-        have_orchard = rand.bool()
-
-        # Common Transaction Fields
-        self.nVersionGroupId = NU5_VERSION_GROUP_ID
-        self.nConsensusBranchId = consensus_branch_id
-
         # Orchard Transaction Fields
-        self.vActionsOrchard = []
-        if have_orchard:
-            for _ in range(rand.u8() % 5):
-                self.vActionsOrchard.append(OrchardActionDescription(rand))
-            self.flagsOrchard = rand.u8() & 3 # Only two flag bits are currently defined.
-            if self.is_coinbase():
-                # set enableSpendsOrchard = 0
-                self.flagsOrchard &= 2
-            self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
-            self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
-            self.proofsOrchard = rand.b(rand.u8() + 32) # Proof will always contain at least one element
-            self.bindingSigOrchard = RedPallasSignature(rand)
-        else:
-            # If valueBalanceOrchard is not present in the serialized transaction, then
-            # v^balanceOrchard is defined to be 0.
-            self.valueBalanceOrchard = 0
-
-    def version_bytes(self):
-        return NU5_TX_VERSION | (1 << 31)
-
-    def orchard_txn_field_bytes(self):
-        ret = b''
         ret += write_compact_size(len(self.vActionsOrchard))
         if len(self.vActionsOrchard) > 0:
             # Not explicitly gated in the protocol spec, but if the gate
@@ -558,17 +536,42 @@ class TransactionV5(TransactionBase):
             ret += self.proofsOrchard
             for desc in self.vActionsOrchard:
                 ret += bytes(desc.spendAuthSig)
-            ret += bytes(self.bindingSigOrchard)
+
         return ret
+
+class TransactionV5(TransactionBase):
+    def __init__(self, rand, consensus_branch_id):
+
+        have_orchard = rand.bool()
+        # All Transparent and Sapling Transaction Fields are initialized in the super class.
+        # The super class will also initialize some of the Orchard Transaction Fields.
+        super().__init__(rand, have_orchard)
+
+        # Common Transaction Fields
+        self.nVersionGroupId = NU5_VERSION_GROUP_ID
+        self.nConsensusBranchId = consensus_branch_id
+
+        # Orchard Transaction Fields
+        if have_orchard:
+            for _ in range(rand.u8() % 5):
+                self.vActionsOrchard.append(OrchardActionDescription(rand))
+            self.flagsOrchard &= 3  # Only two flag bits are currently defined.
+            if self.is_coinbase():
+                # set enableSpendsOrchard = 0
+                self.flagsOrchard &= 2
+
+    def version_bytes(self):
+        return NU5_TX_VERSION | (1 << 31)
 
     def __bytes__(self):
         ret = b''
 
-        # Fields that are in TransactionBase: Common, Transparent, Sapling
+        # Fields that are in TransactionBase: Common, Transparent, Sapling, most Orchard
         ret += super().__bytes__(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
-        # Orchard Transaction Fields
-        ret += self.orchard_txn_field_bytes()
+        # Orchard remaining Transaction Fields (if the Orchard bundle exists)
+        if len(self.vActionsOrchard) > 0:
+            ret += bytes(self.bindingSigOrchard)
 
         return ret
 

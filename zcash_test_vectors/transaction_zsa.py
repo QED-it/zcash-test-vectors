@@ -90,31 +90,20 @@ class TransactionZSA(TransactionBase):
         assert have_orchard_zsa or not have_burn
 
         # All the Transparent and Sapling Transaction Fields are initialized in the super (TransactionBase) class.
-        super().__init__(rand)
+        super().__init__(rand, have_orchard_zsa)
 
         # Common Transaction Fields
         self.nVersionGroupId = NU7_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
 
         # Orchard-ZSA Transaction Fields
-        self.vActionsOrchardZSA = []
         if have_orchard_zsa:
             for _ in range(rand.u8() % 5):
-                self.vActionsOrchardZSA.append(OrchardZSAActionDescription(rand))
-            self.flagsOrchardZSA = rand.u8() & 7 # Only three flag bits are currently defined.
-            self.flagsOrchardZSA |= 4  # Setting enableZSAs to true for these tests
+                self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
+            self.flagsOrchard = (self.flagsOrchard & 7) | 4  # Only three flag bits are currently defined, and we set enableZSA to true.
             if self.is_coinbase():
                 # set enableSpendsOrchard = 0
-                self.flagsOrchardZSA &= 2
-            self.valueBalanceOrchardZSA = rand.u64() % (MAX_MONEY + 1)
-            self.anchorOrchardZSA = PallasBase(leos2ip(rand.b(32)))
-            self.proofsOrchardZSA = rand.b(rand.u8() + 32) # Proof will always contain at least one element
-            self.bindingSigOrchardZSA = RedPallasSignature(rand)
-
-        else:
-            # If valueBalanceOrchard is not present in the serialized transaction, then
-            # v^balanceOrchard is defined to be 0.
-            self.valueBalanceOrchardZSA = 0
+                self.flagsOrchard &= 2
 
         # OrchardZSA Burn Fields
         self.vAssetBurnOrchardZSA = []
@@ -132,28 +121,6 @@ class TransactionZSA(TransactionBase):
 
     def version_bytes(self):
         return NU7_TX_VERSION | (1 << 31)
-
-    def orchard_zsa_transfer_field_bytes(self):
-        ret = b''
-        ret += write_compact_size(len(self.vActionsOrchardZSA))
-        if len(self.vActionsOrchardZSA) > 0:
-            # Not explicitly gated in the protocol spec, but if the gate
-            # were inactive then these loops would be empty by definition.
-            for desc in self.vActionsOrchardZSA:
-                ret += bytes(desc) # Excludes spendAuthSig
-            ret += struct.pack('B', self.flagsOrchardZSA)
-            ret += struct.pack('<Q', self.valueBalanceOrchardZSA)
-            ret += bytes(self.anchorOrchardZSA)
-            ret += write_compact_size(len(self.proofsOrchardZSA))
-            ret += self.proofsOrchardZSA
-            for desc in self.vActionsOrchardZSA:
-                ret += bytes(desc.spendAuthSig)
-
-            # OrchardZSA Burn Fields
-            ret += self.orchard_zsa_burn_field_bytes()
-
-            ret += bytes(self.bindingSigOrchardZSA)
-        return ret
 
     def orchard_zsa_burn_field_bytes(self):
         ret = b''
@@ -176,11 +143,13 @@ class TransactionZSA(TransactionBase):
     def __bytes__(self):
         ret = b''
 
-        # Fields that are in TransactionBase: Common, Transparent, Sapling
+        # Fields that are in TransactionBase: Common, Transparent, Sapling, most Orchard
         ret += super().__bytes__(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
-        # OrchardZSA Transaction Fields
-        ret += self.orchard_zsa_transfer_field_bytes()
+        # OrchardZSA remaining Transaction Fields (if the Orchard bundle exists)
+        if len(self.vActionsOrchard) > 0:
+            ret += self.orchard_zsa_burn_field_bytes()
+            ret += bytes(self.bindingSigOrchard)
 
         # ZSA Issuance Fields
         ret += self.issuance_field_bytes()

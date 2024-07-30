@@ -15,65 +15,8 @@ from .zip_0143 import (
     SIGHASH_NONE,
     SIGHASH_SINGLE,
 )
-from .zip_0244 import (
-    transparent_digest, transparent_scripts_digest,
-    sapling_digest, sapling_auth_digest,
-    header_digest, TransparentInput, transparent_sig_digest,
-)
 
-# Orchard
-
-def orchard_zsa_digest(tx: TransactionZSA):
-    digest = blake2b(digest_size=32, person=b'ZTxIdOrchardHash')
-
-    if len(tx.vActionsOrchardZSA) > 0:
-        digest.update(orchard_zsa_actions_compact_digest(tx))
-        digest.update(orchard_zsa_actions_memos_digest(tx))
-        digest.update(orchard_zsa_actions_noncompact_digest(tx))
-        digest.update(orchard_zsa_burn_digest(tx))
-        digest.update(struct.pack('<B', tx.flagsOrchardZSA))
-        digest.update(struct.pack('<Q', tx.valueBalanceOrchardZSA))
-        digest.update(bytes(tx.anchorOrchardZSA))
-
-    return digest.digest()
-
-def orchard_zsa_auth_digest(tx: TransactionZSA):
-    digest = blake2b(digest_size=32, person=b'ZTxAuthOrchaHash')
-
-    if len(tx.vActionsOrchardZSA) > 0:
-        digest.update(tx.proofsOrchardZSA)
-        for desc in tx.vActionsOrchardZSA:
-            digest.update(bytes(desc.spendAuthSig))
-        digest.update(bytes(tx.bindingSigOrchardZSA))
-
-    return digest.digest()
-
-# - Actions
-
-def orchard_zsa_actions_compact_digest(tx: TransactionZSA):
-    digest = blake2b(digest_size=32, person=b'ZTxIdOrcActCHash')
-    for desc in tx.vActionsOrchardZSA:
-        digest.update(bytes(desc.nullifier))
-        digest.update(bytes(desc.cmx))
-        digest.update(bytes(desc.ephemeralKey))
-        digest.update(desc.encCiphertext[:84])
-    return digest.digest()
-
-def orchard_zsa_actions_memos_digest(tx: TransactionZSA):
-    digest = blake2b(digest_size=32, person=b'ZTxIdOrcActMHash')
-    for desc in tx.vActionsOrchardZSA:
-        digest.update(desc.encCiphertext[84:596])
-    return digest.digest()
-
-def orchard_zsa_actions_noncompact_digest(tx: TransactionZSA):
-    digest = blake2b(digest_size=32, person=b'ZTxIdOrcActNHash')
-    for desc in tx.vActionsOrchardZSA:
-        digest.update(bytes(desc.cv))
-        digest.update(bytes(desc.rk))
-        digest.update(desc.encCiphertext[596:])
-        digest.update(desc.outCiphertext)
-    return digest.digest()
-
+# - Burn
 def orchard_zsa_burn_digest(tx: TransactionZSA):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcBurnHash')
 
@@ -122,55 +65,10 @@ def issue_notes_digest(action: IssueActionDescription):
     return digest.digest()
 
 
-# Transaction
-
-def txid_digest(tx: TransactionZSA):
-    digest = blake2b(
-        digest_size=32,
-        person=b'ZcashTxHash_' + struct.pack('<I', tx.nConsensusBranchId),
-    )
-
-    digest.update(header_digest(tx))
-    digest.update(transparent_digest(tx))
-    digest.update(sapling_digest(tx))
-    digest.update(orchard_zsa_digest(tx))
-    digest.update(issuance_digest(tx))
-
-    return digest.digest()
-
-# Authorizing Data Commitment
-
-def auth_digest(tx: TransactionZSA):
-    digest = blake2b(
-        digest_size=32,
-        person=b'ZTxAuthHash_' + struct.pack('<I', tx.nConsensusBranchId),
-    )
-
-    digest.update(transparent_scripts_digest(tx))
-    digest.update(sapling_auth_digest(tx))
-    digest.update(orchard_zsa_auth_digest(tx))
-    digest.update(issuance_auth_digest(tx))
-
-    return digest.digest()
-
-# Signatures
-
-def signature_digest(tx: TransactionZSA, t_inputs, nHashType, txin):
-    digest = blake2b(
-        digest_size=32,
-        person=b'ZcashTxHash_' + struct.pack('<I', tx.nConsensusBranchId),
-    )
-
-    digest.update(header_digest(tx))
-    digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
-    digest.update(sapling_digest(tx))
-    digest.update(orchard_zsa_digest(tx))
-    digest.update(issuance_digest(tx))
-
-    return digest.digest()
-
 def main():
     args = render_args()
+
+    from .zip_0244 import TransparentInput, txid_digest, auth_digest, signature_digest
 
     from random import Random
     rng = Random(0xabad533d)
