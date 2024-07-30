@@ -287,7 +287,7 @@ def hash_type(tx, nHashType, txin):
             SIGHASH_ALL | SIGHASH_ANYONECANPAY,
             SIGHASH_NONE | SIGHASH_ANYONECANPAY,
             SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
-            ]
+        ]
         assert (nHashType & 0x1f) != SIGHASH_SINGLE or 0 <= txin.nIn and txin.nIn < len(tx.vout)
     return struct.pack('B', nHashType)
 
@@ -383,18 +383,18 @@ def populate_test_vector(rand, test_vectors, tx):
         other_sighashes = {
             nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
             for nHashType in ([
-                                  SIGHASH_ALL,
-                                  SIGHASH_NONE,
-                                  SIGHASH_SINGLE,
-                                  SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                                  SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                                  SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
-                                  ] if txin is None or txin.nIn < len(tx.vout) else [
+                SIGHASH_ALL,
+                SIGHASH_NONE,
+                SIGHASH_SINGLE,
+                SIGHASH_ALL | SIGHASH_ANYONECANPAY,
+                SIGHASH_NONE | SIGHASH_ANYONECANPAY,
+                SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
+            ] if txin is None or txin.nIn < len(tx.vout) else [
                 SIGHASH_ALL,
                 SIGHASH_NONE,
                 SIGHASH_ALL | SIGHASH_ANYONECANPAY,
                 SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                ])
+            ])
         }
 
         test_vectors.append({
