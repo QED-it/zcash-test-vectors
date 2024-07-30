@@ -64,23 +64,10 @@ def issue_notes_digest(action: IssueActionDescription):
 
     return digest.digest()
 
-
 def main():
-    args = render_args()
-
-    from .zip_0244 import TransparentInput, txid_digest, auth_digest, signature_digest
-
-    from random import Random
-    rng = Random(0xabad533d)
-    def randbytes(l):
-        ret = []
-        while len(ret) < l:
-            ret.append(rng.randrange(0, 256))
-        return bytes(ret)
-    rand = Rand(randbytes)
-
-    consensusBranchId = 0x77777777 # NU7
-
+    from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors
+    consensus_branch_id = 0x77777777  # NU7
+    rand = rand_gen()
     test_vectors = []
 
     # We test for various combinations of the following flags:
@@ -94,77 +81,10 @@ def main():
 
     for choice in allowed_choices:
         for _ in range(2):    # We generate two test vectors for each choice.
-            tx = TransactionZSA(rand, consensusBranchId, choice[0], choice[1], choice[2])
-            txid = txid_digest(tx)
-            auth = auth_digest(tx)
+            tx = TransactionZSA(rand, consensus_branch_id, choice[0], choice[1], choice[2])
+            populate_test_vector(rand, test_vectors, tx)
 
-            # Generate amounts and scriptCodes for each non-dummy transparent input.
-            if tx.is_coinbase():
-                t_inputs = []
-            else:
-                t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(tx.vin))]
-
-            # If there are any non-dummy transparent inputs, derive a corresponding transparent sighash.
-            if len(t_inputs) > 0:
-                txin = rand.a(t_inputs)
-            else:
-                txin = None
-
-            sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
-            other_sighashes = {
-                nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
-                for nHashType in ([
-                                      SIGHASH_ALL,
-                                      SIGHASH_NONE,
-                                      SIGHASH_SINGLE,
-                                      SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                                      SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                                      SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
-                                      ] if txin is None or txin.nIn < len(tx.vout) else [
-                    SIGHASH_ALL,
-                    SIGHASH_NONE,
-                    SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                    SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                    ])
-            }
-
-            test_vectors.append({
-                'tx': bytes(tx),
-                'txid': txid,
-                'auth_digest': auth,
-                'amounts': [x.amount for x in t_inputs],
-                'script_pubkeys': [x.scriptPubKey.raw() for x in t_inputs],
-                'transparent_input': None if txin is None else txin.nIn,
-                'sighash_shielded': sighash_shielded,
-                'sighash_all': other_sighashes.get(SIGHASH_ALL),
-                'sighash_none': other_sighashes.get(SIGHASH_NONE),
-                'sighash_single': other_sighashes.get(SIGHASH_SINGLE),
-                'sighash_all_anyone': other_sighashes.get(SIGHASH_ALL | SIGHASH_ANYONECANPAY),
-                'sighash_none_anyone': other_sighashes.get(SIGHASH_NONE | SIGHASH_ANYONECANPAY),
-                'sighash_single_anyone': other_sighashes.get(SIGHASH_SINGLE | SIGHASH_ANYONECANPAY),
-            })
-
-    render_tv(
-        args,
-        'zip_0244',
-        (
-            ('tx',                    {'rust_type': 'Vec<u8>', 'bitcoin_flavoured': False}),
-            ('txid',                  '[u8; 32]'),
-            ('auth_digest',           '[u8; 32]'),
-            ('amounts',               'Vec<i64>'),
-            ('script_pubkeys',        {'rust_type': 'Vec<Vec<u8>>', 'bitcoin_flavoured': False}),
-            ('transparent_input',     'Option<u32>'),
-            ('sighash_shielded',      '[u8; 32]'),
-            ('sighash_all',           'Option<[u8; 32]>'),
-            ('sighash_none',          'Option<[u8; 32]>'),
-            ('sighash_single',        'Option<[u8; 32]>'),
-            ('sighash_all_anyone',    'Option<[u8; 32]>'),
-            ('sighash_none_anyone',   'Option<[u8; 32]>'),
-            ('sighash_single_anyone', 'Option<[u8; 32]>'),
-        ),
-        test_vectors,
-    )
-
+    generate_test_vectors('zip_0244_zsa', test_vectors)
 
 if __name__ == '__main__':
     main()

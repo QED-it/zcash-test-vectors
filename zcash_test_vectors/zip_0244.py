@@ -351,9 +351,7 @@ def txin_sig_digest(tx, txin):
     return digest.digest()
 
 
-def main():
-    args = render_args()
-
+def rand_gen():
     from random import Random
     rng = Random(0xabad533d)
     def randbytes(l):
@@ -363,11 +361,9 @@ def main():
         return bytes(ret)
     rand = Rand(randbytes)
 
-    consensusBranchId = 0xc2d6d0b4 # NU5
+    return rand
 
-    test_vectors = []
-    for _ in range(10):
-        tx = TransactionV5(rand, consensusBranchId)
+def populate_test_vector(rand, test_vectors, tx):
         txid = txid_digest(tx)
         auth = auth_digest(tx)
 
@@ -417,9 +413,11 @@ def main():
             'sighash_single_anyone': other_sighashes.get(SIGHASH_SINGLE | SIGHASH_ANYONECANPAY),
         })
 
+def generate_test_vectors(filename, test_vectors):
+    args = render_args()
     render_tv(
         args,
-        'zip_0244',
+        filename,
         (
             ('tx',                    {'rust_type': 'Vec<u8>', 'bitcoin_flavoured': False}),
             ('txid',                  '[u8; 32]'),
@@ -438,6 +436,16 @@ def main():
         test_vectors,
     )
 
+def main():
+    consensus_branch_id = 0xc2d6d0b4  # NU5
+    rand = rand_gen()
+
+    test_vectors = []
+    for _ in range(10):
+        tx = TransactionV5(rand, consensus_branch_id)
+        populate_test_vector(rand, test_vectors, tx)
+
+    generate_test_vectors('zip_0244', test_vectors)
 
 if __name__ == '__main__':
     main()
