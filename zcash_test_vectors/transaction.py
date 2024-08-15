@@ -315,6 +315,7 @@ class TxOut(object):
     def __bytes__(self):
         return struct.pack('<Q', self.nValue) + bytes(self.scriptPubKey)
 
+
 class LegacyTransaction(object):
     def __init__(self, rand, version):
         if version == OVERWINTER_TX_VERSION:
@@ -541,7 +542,6 @@ class TransactionBase(object):
 
 class TransactionV5(TransactionBase):
     def __init__(self, rand, consensus_branch_id):
-
         have_orchard = rand.bool()
         # All Transparent and Sapling Transaction Fields are initialized in the super class.
         # The super class will also initialize some of the Orchard Transaction Fields.
@@ -560,6 +560,7 @@ class TransactionV5(TransactionBase):
                 # set enableSpendsOrchard = 0
                 self.flagsOrchard &= 2
 
+    @staticmethod
     def version_bytes(self):
         return NU5_TX_VERSION | (1 << 31)
 
