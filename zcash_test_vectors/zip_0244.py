@@ -2,7 +2,7 @@
 import sys;
 
 from zcash_test_vectors.transaction_zsa import NU7_VERSION_GROUP_ID
-from zcash_test_vectors.zip_0244_zsa import orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
+from zcash_test_vectors.orchard_zsa.digests import orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
 
 assert sys.version_info[0] >= 3, "Python 3 required."
 
@@ -14,7 +14,7 @@ from .transaction import (
     Script,
     TransactionV5,
 )
-from .output import render_args, render_tv, Some
+from .output import render_args, render_tv
 from .rand import Rand
 from .zip_0143 import (
     getHashOutputs,

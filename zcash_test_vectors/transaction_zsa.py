@@ -87,7 +87,7 @@ class TransactionZSA(TransactionBase):
         # We cannot have burns without an OrchardZSA bundle.
         assert have_orchard_zsa or not have_burn
 
-        # All the Transparent and Sapling Transaction Fields are initialized in the super (TransactionBase) class.
+        # All Transparent, Sapling, and part of the Orchard Transaction Fields are initialized in the super class.
         super().__init__(rand, have_orchard_zsa)
 
         # Common Transaction Fields
@@ -98,6 +98,7 @@ class TransactionZSA(TransactionBase):
         if have_orchard_zsa:
             for _ in range(rand.u8() % 5):
                 self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
+            self.flagsOrchard = rand.u8()
             self.flagsOrchard = (self.flagsOrchard & 7) | 4  # Three flag bits are defined, we set enableZSA to true.
             if self.is_coinbase():
                 self.flagsOrchard &= 2  # set enableSpendsOrchard = 0
@@ -117,7 +118,7 @@ class TransactionZSA(TransactionBase):
             self.issueAuthSig = rand.b(64)
 
     @staticmethod
-    def version_bytes(self):
+    def version_bytes():
         return NU7_TX_VERSION | (1 << 31)
 
     def orchard_zsa_burn_field_bytes(self):
@@ -142,7 +143,7 @@ class TransactionZSA(TransactionBase):
         ret = b''
 
         # Fields that are in TransactionBase: Common, Transparent, Sapling, most Orchard
-        ret += super().__bytes__(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
+        ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
         # OrchardZSA remaining Transaction Fields (if the Orchard bundle exists)
         if len(self.vActionsOrchard) > 0:
