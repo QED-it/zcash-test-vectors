@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import sys;
 
-from zcash_test_vectors.transaction_zsa import NU7_VERSION_GROUP_ID
-from zcash_test_vectors.orchard_zsa.digests import orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
-
 assert sys.version_info[0] >= 3, "Python 3 required."
 
 from hashlib import blake2b
 import struct
 
+from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
 from .transaction import (
     MAX_MONEY,
     Script,

@@ -1,17 +1,17 @@
 import struct
 
+from zcash_test_vectors.bip340_reference import schnorr_sign
 from .orchard.key_components import FullViewingKey, SpendingKey
-from .orchard_zsa.key_components import IssuanceKeys
 from .orchard.pallas import Point
+from .orchard_zsa.key_components import IssuanceKeys
+from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION
 from .orchard_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes
 from .zc_utils import write_compact_size
 from .transaction import (
     NOTEENCRYPTION_AUTH_BYTES, ZC_SAPLING_ENCPLAINTEXT_SIZE,
     OrchardActionBase, TransactionBase,
 )
-
-NU7_VERSION_GROUP_ID = 0x124A69F8
-NU7_TX_VERSION = 7
+from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, txid_digest
 
 # Orchard ZSA note values
 ZC_ORCHARD_ZSA_ASSET_SIZE = 32
@@ -112,10 +112,12 @@ class TransactionZSA(TransactionBase):
         # OrchardZSA Issuance Fields
         self.vIssueActions = []
         if have_issuance:
-            self.ik = IssuanceKeys(rand.b(32)).ik
+            self.isk = rand.b(32)
+            self.ik = IssuanceKeys(self.isk).ik
             for _ in range(rand.u8() % 5):
                 self.vIssueActions.append(IssueActionDescription(rand, self.ik))
-            self.issueAuthSig = rand.b(64)
+            txid = txid_digest(self)
+            self.issueAuthSig = schnorr_sign(txid, self.isk, b'\0' * 32)
 
     @staticmethod
     def version_bytes():
@@ -154,3 +156,31 @@ class TransactionZSA(TransactionBase):
         ret += self.issuance_field_bytes()
 
         return ret
+
+
+def main():
+    consensus_branch_id = 0x77777777  # NU7
+    rand = rand_gen()
+    test_vectors = []
+
+    # Since the burn fields are within the Orchard ZSA fields, we can't have burn without Orchard ZSA.
+    # This gives us the following choices for [have_orchard_zsa, have_burn, have_issuance]:
+    allowed_choices = [
+        [False, False, False],
+        [False, False, True],
+        [True, False, False],
+        [True, False, True],
+        [True, True, False],
+        [True, True, True]
+    ]
+
+    for choice in allowed_choices:
+        for _ in range(2):    # We generate two test vectors for each choice.
+            tx = TransactionZSA(rand, consensus_branch_id, *choice)
+            populate_test_vector(rand, test_vectors, tx)
+
+    generate_test_vectors('orchard_zsa_digests', test_vectors)
+
+
+if __name__ == '__main__':
+    main()
