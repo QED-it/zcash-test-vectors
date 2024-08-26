@@ -5,7 +5,7 @@ from hashlib import blake2b
 import struct
 
 NU7_VERSION_GROUP_ID = 0x124A69F8
-NU7_TX_VERSION = 7
+NU7_TX_VERSION = 6
 
 
 def orchard_zsa_burn_digest(tx):
