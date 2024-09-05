@@ -99,9 +99,11 @@ class TransactionZSA(TransactionBase):
             for _ in range(rand.u8() % 5):
                 self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
             self.flagsOrchard = rand.u8()
-            self.flagsOrchard = (self.flagsOrchard & 7) | 4  # Three flag bits are defined, we set enableZSA to true.
+            # Three flag bits are defined, we set enableZSA to true.
+            self.flagsOrchard = (self.flagsOrchard & 7) | 4
             if self.is_coinbase():
-                self.flagsOrchard &= 2  # set enableSpendsOrchard = 0
+                # set enableSpendsOrchard = 0
+                self.flagsOrchard &= 2
 
         # OrchardZSA Burn Fields
         self.vAssetBurnOrchardZSA = []
@@ -144,10 +146,10 @@ class TransactionZSA(TransactionBase):
     def __bytes__(self):
         ret = b''
 
-        # Fields that are in TransactionBase: Common, Transparent, Sapling, most Orchard
+        # Common Transaction Fields
         ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
-        # OrchardZSA remaining Transaction Fields (if the Orchard bundle exists)
+        # OrchardZSA Transaction Fields
         if len(self.vActionsOrchard) > 0:
             ret += self.orchard_zsa_burn_field_bytes()
             ret += bytes(self.bindingSigOrchard)

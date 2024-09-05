@@ -25,6 +25,13 @@ from .zip_0143 import (
 )
 
 
+def ciphertext_offset(tx_version_group_id):
+    if tx_version_group_id == NU7_VERSION_GROUP_ID:
+        # Compact ends at 84, Memo ends at 596 for V6
+        return 84, 596
+    # Compact ends at 52, Memo ends at 564 for V5
+    return 52, 564
+
 # Transparent
 
 def transparent_digest(tx):
@@ -160,28 +167,28 @@ def orchard_auth_digest(tx):
 
 def orchard_actions_compact_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActCHash')
-    offset = 32 if tx.nVersionGroupId == NU7_VERSION_GROUP_ID else 0
+    compact_end, _ = ciphertext_offset(tx.nVersionGroupId)
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.nullifier))
         digest.update(bytes(desc.cmx))
         digest.update(bytes(desc.ephemeralKey))
-        digest.update(desc.encCiphertext[:52+offset])
+        digest.update(desc.encCiphertext[:compact_end])
     return digest.digest()
 
 def orchard_actions_memos_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActMHash')
-    offset = 32 if tx.nVersionGroupId == NU7_VERSION_GROUP_ID else 0
+    compact_end, memo_end = ciphertext_offset(tx.nVersionGroupId)
     for desc in tx.vActionsOrchard:
-        digest.update(desc.encCiphertext[52+offset:564+offset])
+        digest.update(desc.encCiphertext[compact_end:memo_end])
     return digest.digest()
 
 def orchard_actions_noncompact_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActNHash')
-    offset = 32 if tx.nVersionGroupId == NU7_VERSION_GROUP_ID else 0
+    _, memo_end = ciphertext_offset(tx.nVersionGroupId)
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.cv))
         digest.update(bytes(desc.rk))
-        digest.update(desc.encCiphertext[564+offset:])
+        digest.update(desc.encCiphertext[memo_end:])
         digest.update(desc.outCiphertext)
     return digest.digest()
 

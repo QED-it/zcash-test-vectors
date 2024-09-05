@@ -566,10 +566,10 @@ class TransactionV5(TransactionBase):
     def __bytes__(self):
         ret = b''
 
-        # Fields that are in TransactionBase: Common, Transparent, Sapling, most Orchard
+        # Common Transaction Fields
         ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
-        # Orchard remaining Transaction Fields (if the Orchard bundle exists)
+        # Orchard Transaction Fields
         if len(self.vActionsOrchard) > 0:
             ret += bytes(self.bindingSigOrchard)
 
