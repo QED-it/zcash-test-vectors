@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import sys;
 
-from zcash_test_vectors.transaction_zsa import TransactionZSA
-
 assert sys.version_info[0] >= 3, "Python 3 required."
 
 from hashlib import blake2b
