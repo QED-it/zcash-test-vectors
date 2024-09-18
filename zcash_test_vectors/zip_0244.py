@@ -11,6 +11,7 @@ from .transaction import (
     MAX_MONEY,
     Script,
     TransactionV5,
+    NU5_VERSION_GROUP_ID,
 )
 from .output import render_args, render_tv
 from .rand import Rand
@@ -24,13 +25,6 @@ from .zip_0143 import (
     SIGHASH_SINGLE,
 )
 
-
-def ciphertext_offset(tx_version_group_id):
-    if tx_version_group_id == NU7_VERSION_GROUP_ID:
-        # Compact ends at 84, Memo ends at 596 for V6
-        return 84, 596
-    # Compact ends at 52, Memo ends at 564 for V5
-    return 52, 564
 
 # Transparent
 
@@ -163,32 +157,43 @@ def orchard_auth_digest(tx):
 
     return digest.digest()
 
+
+# - helper for Actions functions
+def ciphertext_offset(tx_version_group_id):
+    if tx_version_group_id == NU5_VERSION_GROUP_ID:
+        # Compact ends at 52, Memo ends at 564 for V5
+        return {'compact_end': 52, 'memo_end': 564}
+    elif tx_version_group_id == NU7_VERSION_GROUP_ID:
+        # Compact ends at 84, Memo ends at 596 for V6
+        return {'compact_end': 84, 'memo_end': 596}
+    else:
+        raise ValueError("Unsupported transaction version group id")
+
 # - Actions
 
 def orchard_actions_compact_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActCHash')
-    compact_end, _ = ciphertext_offset(tx.nVersionGroupId)
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.nullifier))
         digest.update(bytes(desc.cmx))
         digest.update(bytes(desc.ephemeralKey))
-        digest.update(desc.encCiphertext[:compact_end])
+        digest.update(desc.encCiphertext[:ciphertext_offset(tx.nVersionGroupId)['compact_end']])
     return digest.digest()
 
 def orchard_actions_memos_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActMHash')
-    compact_end, memo_end = ciphertext_offset(tx.nVersionGroupId)
+    compact_end = ciphertext_offset(tx.nVersionGroupId)['compact_end']
+    memo_end = ciphertext_offset(tx.nVersionGroupId)['memo_end']
     for desc in tx.vActionsOrchard:
         digest.update(desc.encCiphertext[compact_end:memo_end])
     return digest.digest()
 
 def orchard_actions_noncompact_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActNHash')
-    _, memo_end = ciphertext_offset(tx.nVersionGroupId)
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.cv))
         digest.update(bytes(desc.rk))
-        digest.update(desc.encCiphertext[memo_end:])
+        digest.update(desc.encCiphertext[ciphertext_offset(tx.nVersionGroupId)['memo_end']:])
         digest.update(desc.outCiphertext)
     return digest.digest()
 
