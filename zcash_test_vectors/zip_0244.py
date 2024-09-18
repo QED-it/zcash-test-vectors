@@ -6,12 +6,12 @@ assert sys.version_info[0] >= 3, "Python 3 required."
 from hashlib import blake2b
 import struct
 
-from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
+from .orchard_zsa.digests import NU7_TX_VERSION, orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
 from .transaction import (
     MAX_MONEY,
     Script,
     TransactionV5,
-    NU5_VERSION_GROUP_ID,
+    NU5_TX_VERSION,
 )
 from .output import render_args, render_tv
 from .rand import Rand
@@ -138,7 +138,7 @@ def orchard_digest(tx):
         digest.update(orchard_actions_compact_digest(tx))
         digest.update(orchard_actions_memos_digest(tx))
         digest.update(orchard_actions_noncompact_digest(tx))
-        if tx.nVersionGroupId == NU7_VERSION_GROUP_ID:
+        if tx.version_bytes() == NU7_TX_VERSION | (1 << 31):
             digest.update(orchard_zsa_burn_digest(tx))
         digest.update(struct.pack('<B', tx.flagsOrchard))
         digest.update(struct.pack('<Q', tx.valueBalanceOrchard))
@@ -159,11 +159,11 @@ def orchard_auth_digest(tx):
 
 
 # - helper for Actions functions
-def ciphertext_offset(tx_version_group_id):
-    if tx_version_group_id == NU5_VERSION_GROUP_ID:
+def ciphertext_offset(tx_version_bytes):
+    if tx_version_bytes == NU5_TX_VERSION | (1 << 31):
         # Compact ends at 52, Memo ends at 564 for V5
         return {'compact_end': 52, 'memo_end': 564}
-    elif tx_version_group_id == NU7_VERSION_GROUP_ID:
+    elif tx_version_bytes == NU7_TX_VERSION | (1 << 31):
         # Compact ends at 84, Memo ends at 596 for V6
         return {'compact_end': 84, 'memo_end': 596}
     else:
@@ -177,15 +177,14 @@ def orchard_actions_compact_digest(tx):
         digest.update(bytes(desc.nullifier))
         digest.update(bytes(desc.cmx))
         digest.update(bytes(desc.ephemeralKey))
-        digest.update(desc.encCiphertext[:ciphertext_offset(tx.nVersionGroupId)['compact_end']])
+        digest.update(desc.encCiphertext[:ciphertext_offset(tx.version_bytes())['compact_end']])
     return digest.digest()
 
 def orchard_actions_memos_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcActMHash')
-    compact_end = ciphertext_offset(tx.nVersionGroupId)['compact_end']
-    memo_end = ciphertext_offset(tx.nVersionGroupId)['memo_end']
+    offsets = ciphertext_offset(tx.version_bytes())
     for desc in tx.vActionsOrchard:
-        digest.update(desc.encCiphertext[compact_end:memo_end])
+        digest.update(desc.encCiphertext[offsets['compact_end']:offsets['memo_end']])
     return digest.digest()
 
 def orchard_actions_noncompact_digest(tx):
@@ -193,7 +192,7 @@ def orchard_actions_noncompact_digest(tx):
     for desc in tx.vActionsOrchard:
         digest.update(bytes(desc.cv))
         digest.update(bytes(desc.rk))
-        digest.update(desc.encCiphertext[ciphertext_offset(tx.nVersionGroupId)['memo_end']:])
+        digest.update(desc.encCiphertext[ciphertext_offset(tx.version_bytes())['memo_end']:])
         digest.update(desc.outCiphertext)
     return digest.digest()
 
@@ -220,7 +219,7 @@ def txid_digest(tx):
     digest.update(transparent_digest(tx))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx))
-    if tx.nVersionGroupId == NU7_VERSION_GROUP_ID:
+    if tx.version_bytes() == NU7_TX_VERSION | (1 << 31):
         digest.update(issuance_digest(tx))
 
     return digest.digest()
@@ -236,7 +235,7 @@ def auth_digest(tx):
     digest.update(transparent_scripts_digest(tx))
     digest.update(sapling_auth_digest(tx))
     digest.update(orchard_auth_digest(tx))
-    if tx.nVersionGroupId == NU7_VERSION_GROUP_ID:
+    if tx.version_bytes() == NU7_TX_VERSION | (1 << 31):
         digest.update(issuance_auth_digest(tx))
 
     return digest.digest()
@@ -259,7 +258,7 @@ def signature_digest(tx, t_inputs, nHashType, txin):
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx))
-    if tx.nVersionGroupId == NU7_VERSION_GROUP_ID:
+    if tx.version_bytes() == NU7_TX_VERSION | (1 << 31):
         digest.update(issuance_digest(tx))
 
     return digest.digest()
