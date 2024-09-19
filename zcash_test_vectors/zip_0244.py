@@ -4,14 +4,15 @@ import sys;
 assert sys.version_info[0] >= 3, "Python 3 required."
 
 from hashlib import blake2b
+from collections import namedtuple
 import struct
 
-from .orchard_zsa.digests import NU7_TX_VERSION, orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
+from .orchard_zsa.digests import NU7_TX_VERSION_BYTES, orchard_zsa_burn_digest, issuance_digest, issuance_auth_digest
 from .transaction import (
     MAX_MONEY,
     Script,
     TransactionV5,
-    NU5_TX_VERSION,
+    NU5_TX_VERSION_BYTES,
 )
 from .output import render_args, render_tv
 from .rand import Rand
@@ -138,7 +139,7 @@ def orchard_digest(tx):
         digest.update(orchard_actions_compact_digest(tx))
         digest.update(orchard_actions_memos_digest(tx))
         digest.update(orchard_actions_noncompact_digest(tx))
-        if tx.version_bytes() == NU7_TX_VERSION | (1 << 31):
+        if tx.version_bytes() == NU7_TX_VERSION_BYTES:
             digest.update(orchard_zsa_burn_digest(tx))
         digest.update(struct.pack('<B', tx.flagsOrchard))
         digest.update(struct.pack('<Q', tx.valueBalanceOrchard))
@@ -158,19 +159,15 @@ def orchard_auth_digest(tx):
     return digest.digest()
 
 
-# - helpers for Actions functions
-class Offsets:
-    def __init__(self, compact_end, memo_end):
-        self.compact_end = compact_end
-        self.memo_end = memo_end
-
+# - helper for Actions functions
 def ciphertext_offset(tx_version_bytes):
-    if tx_version_bytes == NU5_TX_VERSION | (1 << 31):
+    Offsets = namedtuple('Offsets', ['compact_end', 'memo_end'])
+    if tx_version_bytes == NU5_TX_VERSION_BYTES:
         # Compact ends at 52, Memo ends at 564 for V5
-        return Offsets(52, 564)
-    elif tx_version_bytes == NU7_TX_VERSION | (1 << 31):
+        return Offsets(compact_end=52, memo_end=564)
+    elif tx_version_bytes == NU7_TX_VERSION_BYTES:
         # Compact ends at 84, Memo ends at 596 for V6
-        return Offsets(84, 596)
+        return Offsets(compact_end=84, memo_end=596)
     else:
         raise ValueError("Unsupported transaction version")
 
@@ -226,7 +223,7 @@ def txid_digest(tx):
     digest.update(transparent_digest(tx))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx))
-    if tx.version_bytes() == NU7_TX_VERSION | (1 << 31):
+    if tx.version_bytes() == NU7_TX_VERSION_BYTES:
         digest.update(issuance_digest(tx))
 
     return digest.digest()
@@ -242,7 +239,7 @@ def auth_digest(tx):
     digest.update(transparent_scripts_digest(tx))
     digest.update(sapling_auth_digest(tx))
     digest.update(orchard_auth_digest(tx))
-    if tx.version_bytes() == NU7_TX_VERSION | (1 << 31):
+    if tx.version_bytes() == NU7_TX_VERSION_BYTES:
         digest.update(issuance_auth_digest(tx))
 
     return digest.digest()
@@ -265,7 +262,7 @@ def signature_digest(tx, t_inputs, nHashType, txin):
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
     digest.update(sapling_digest(tx))
     digest.update(orchard_digest(tx))
-    if tx.version_bytes() == NU7_TX_VERSION | (1 << 31):
+    if tx.version_bytes() == NU7_TX_VERSION_BYTES:
         digest.update(issuance_digest(tx))
 
     return digest.digest()

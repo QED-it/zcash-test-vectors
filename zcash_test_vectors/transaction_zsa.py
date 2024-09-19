@@ -4,7 +4,7 @@ from zcash_test_vectors.bip340_reference import schnorr_sign
 from .orchard.key_components import FullViewingKey, SpendingKey
 from .orchard.pallas import Point
 from .orchard_zsa.key_components import IssuanceKeys
-from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION
+from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION_BYTES
 from .orchard_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes
 from .zc_utils import write_compact_size
 from .transaction import (
@@ -123,7 +123,7 @@ class TransactionZSA(TransactionBase):
 
     @staticmethod
     def version_bytes():
-        return NU7_TX_VERSION | (1 << 31)
+        return NU7_TX_VERSION_BYTES
 
     def orchard_zsa_burn_field_bytes(self):
         ret = b''

@@ -6,7 +6,7 @@ import struct
 
 NU7_VERSION_GROUP_ID = 0x124A69F8
 NU7_TX_VERSION = 6
-
+NU7_TX_VERSION_BYTES = NU7_TX_VERSION | (1 << 31)
 
 def orchard_zsa_burn_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdOrcBurnHash')

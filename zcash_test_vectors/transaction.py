@@ -25,6 +25,7 @@ SAPLING_TX_VERSION = 4
 
 NU5_VERSION_GROUP_ID = 0x26A7270A
 NU5_TX_VERSION = 5
+NU5_TX_VERSION_BYTES = NU5_TX_VERSION | (1 << 31)
 
 # Sapling note magic values, copied from src/zcash/Zcash.h
 NOTEENCRYPTION_AUTH_BYTES = 16
@@ -561,7 +562,7 @@ class TransactionV5(TransactionBase):
 
     @staticmethod
     def version_bytes():
-        return NU5_TX_VERSION | (1 << 31)
+        return NU5_TX_VERSION_BYTES
 
     def __bytes__(self):
         ret = b''
