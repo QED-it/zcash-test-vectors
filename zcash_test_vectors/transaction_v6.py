@@ -191,7 +191,7 @@ class TransactionV6(TransactionBase):
 
 
 def main():
-    consensus_branch_id = 0x77777777  # NU7
+    consensus_branch_id = 0x77190AD8  # NU7
     rand = rand_gen()
     test_vectors = []
 

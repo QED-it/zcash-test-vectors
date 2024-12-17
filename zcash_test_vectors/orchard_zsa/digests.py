@@ -4,7 +4,7 @@ import sys; assert sys.version_info[0] >= 3, "Python 3 required."
 from hashlib import blake2b
 import struct
 
-NU7_VERSION_GROUP_ID = 0x77190AD8
+NU7_VERSION_GROUP_ID = 0x77777777
 NU7_TX_VERSION = 6
 NU7_TX_VERSION_BYTES = NU7_TX_VERSION | (1 << 31)
 
