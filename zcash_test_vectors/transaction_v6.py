@@ -177,10 +177,11 @@ class TransactionV6(TransactionBase):
         ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
         # OrchardZSA Transaction Fields
+        ret += write_compact_size(len(self.vActionGroupsOrchard))
         if len(self.vActionGroupsOrchard) > 0:
-            ret += write_compact_size(len(self.vActionGroupsOrchard))
             for ag in self.vActionGroupsOrchard:
                 ret += bytes(ag)
+            ret += struct.pack('<Q', self.valueBalanceOrchard)
             ret += self.orchard_zsa_burn_field_bytes()
             ret += bytes(self.bindingSigOrchard)
 
