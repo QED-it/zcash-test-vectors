@@ -6,8 +6,8 @@ assert sys.version_info[0] >= 3, "Python 3 required."
 from hashlib import blake2b
 import struct
 
-from .orchard_zsa.digests import NU7_TX_VERSION_BYTES, issuance_digest, issuance_auth_digest, orchard_v6_digest, \
- orchard_v6_auth_digest
+from .orchard_zsa.digests import NU7_TX_VERSION_BYTES, issuance_digest, issuance_auth_digest, orchard_zsa_digest, \
+ orchard_zsa_auth_digest
 from .transaction import (
     MAX_MONEY,
     Script,
@@ -206,7 +206,7 @@ def txid_digest(tx):
     digest.update(transparent_digest(tx))
     digest.update(sapling_digest(tx))
     if tx.version_bytes() == NU7_TX_VERSION_BYTES:
-        digest.update(orchard_v6_digest(tx))
+        digest.update(orchard_zsa_digest(tx))
         digest.update(issuance_digest(tx))
     else:
         digest.update(orchard_digest(tx))
@@ -224,7 +224,7 @@ def auth_digest(tx):
     digest.update(transparent_scripts_digest(tx))
     digest.update(sapling_auth_digest(tx))
     if tx.version_bytes() == NU7_TX_VERSION_BYTES:
-        digest.update(orchard_v6_auth_digest(tx))
+        digest.update(orchard_zsa_auth_digest(tx))
         digest.update(issuance_auth_digest(tx))
     else:
         digest.update(orchard_auth_digest(tx))
@@ -249,7 +249,7 @@ def signature_digest(tx, t_inputs, nHashType, txin):
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
     digest.update(sapling_digest(tx))
     if tx.version_bytes() == NU7_TX_VERSION_BYTES:
-        digest.update(orchard_v6_digest(tx))
+        digest.update(orchard_zsa_digest(tx))
         digest.update(issuance_digest(tx))
     else:
         digest.update(orchard_digest(tx))

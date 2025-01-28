@@ -87,9 +87,8 @@ class ActionGroupDescription(object):
         # There must always be a non-zero number of Action Descriptions in an Action Group.
         for _ in range(rand.u8() % 4 + 1):
             self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
-        self.flagsOrchard = rand.u8()
         # Three flag bits are defined, we set enableZSA to true.
-        self.flagsOrchard = (self.flagsOrchard & 7) | 4
+        self.flagsOrchard = (rand.u8() & 7) | 4
         if is_coinbase:
             # set enableSpendsOrchard = 0
             self.flagsOrchard &= 2
@@ -101,7 +100,7 @@ class ActionGroupDescription(object):
         ret = b''
         ret += write_compact_size(len(self.vActionsOrchard))
         for desc in self.vActionsOrchard:
-            ret += bytes(desc) # Excludes spendAuthSig
+            ret += bytes(desc)  # Excludes spendAuthSig
         ret += struct.pack('B', self.flagsOrchard)
         ret += bytes(self.anchorOrchard)
         ret += write_compact_size(len(self.proofsOrchard))
