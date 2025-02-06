@@ -87,7 +87,7 @@ class ActionGroupDescription(object):
         # There must always be a non-zero number of Action Descriptions in an Action Group.
         for _ in range(rand.u8() % 4 + 1):
             self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
-        # Three flag bits are defined, ensure the other bits are zero by masking.
+        # Three flag bits are defined, ensure only 3 bits used (mask with 0b00000111).
         self.flagsOrchard = (rand.u8() & 7)
         # Set the enableZSAs flag to true by OR with 0b00000100
         self.flagsOrchard |= 4
