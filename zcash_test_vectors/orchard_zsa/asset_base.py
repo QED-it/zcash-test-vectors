@@ -24,6 +24,11 @@ def asset_digest(encoded_asset_id):
     h.update(encoded_asset_id)
     return h.digest()
 
+def asset_desc_digest(asset_desc):
+    h = blake2b(digest_size=32, person=b"ZSA-AssetDescCRH")
+    h.update(asset_desc)
+    return h.digest()
+
 
 def zsa_value_base(asset_digest_value):
     return group_hash(b"z.cash:OrchardZSA", asset_digest_value)
@@ -83,7 +88,8 @@ def main():
 
         key_bytes = bytes(isk.ik)
         description_bytes = get_random_unicode_bytes(512, rand)
-        asset_base = zsa_value_base(asset_digest(encode_asset_id(key_bytes, description_bytes)))
+        asset_desc_hash = asset_desc_digest(description_bytes)
+        asset_base = zsa_value_base(asset_digest(encode_asset_id(key_bytes, asset_desc_hash)))
 
         test_vectors.append({
             'key': key_bytes,
