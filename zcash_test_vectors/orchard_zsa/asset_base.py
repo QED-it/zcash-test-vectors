@@ -14,6 +14,12 @@ def native_asset():
     return group_hash(b"z.cash:Orchard-cv", b"v")
 
 
+def asset_desc_digest(asset_desc):
+    h = blake2b(digest_size=32, person=b"ZSA-AssetDescCRH")
+    h.update(asset_desc)
+    return h.digest()
+
+
 def encode_asset_id(key, asset_desc_hash):
     version_byte = b"\x00"
     return version_byte + key + asset_desc_hash
@@ -22,12 +28,6 @@ def encode_asset_id(key, asset_desc_hash):
 def asset_digest(encoded_asset_id):
     h = blake2b(person=b"ZSA-Asset-Digest")
     h.update(encoded_asset_id)
-    return h.digest()
-
-
-def asset_desc_digest(asset_desc):
-    h = blake2b(digest_size=32, person=b"ZSA-AssetDescCRH")
-    h.update(asset_desc)
     return h.digest()
 
 
