@@ -14,15 +14,9 @@ def native_asset():
     return group_hash(b"z.cash:Orchard-cv", b"v")
 
 
-def asset_desc_digest(asset_desc):
-    h = blake2b(digest_size=32, person=b"ZSA-AssetDescCRH")
-    h.update(asset_desc)
-    return h.digest()
-
-
-def encode_asset_id(key, asset_desc_hash):
+def encode_asset_id(key, description):
     version_byte = b"\x00"
-    return version_byte + key + asset_desc_hash
+    return version_byte + key + description
 
 
 def asset_digest(encoded_asset_id):
@@ -89,8 +83,7 @@ def main():
 
         key_bytes = bytes(isk.ik)
         description_bytes = get_random_unicode_bytes(512, rand)
-        asset_desc_hash = asset_desc_digest(description_bytes)
-        asset_base = zsa_value_base(asset_digest(encode_asset_id(key_bytes, asset_desc_hash)))
+        asset_base = zsa_value_base(asset_digest(encode_asset_id(key_bytes, description_bytes)))
 
         test_vectors.append({
             'key': key_bytes,
