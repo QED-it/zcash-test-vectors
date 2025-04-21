@@ -49,7 +49,6 @@ class IssueActionDescription(object):
     def __bytes__(self):
         ret = b''
 
-        ret += write_compact_size(self.assetDescSize)
         ret += bytes(self.asset_desc_hash)
         ret += write_compact_size(len(self.vNotes))
         if len(self.vNotes) > 0:
