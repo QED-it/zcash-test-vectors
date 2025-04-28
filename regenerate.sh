@@ -85,3 +85,5 @@ do
   done
   echo "Finished $gen_type."
 done
+
+rustfmt --edition 2021 test-vectors/rust/*.rs
