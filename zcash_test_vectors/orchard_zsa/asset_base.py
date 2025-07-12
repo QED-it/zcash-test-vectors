@@ -102,7 +102,7 @@ def main():
         args,
         'orchard_zsa_asset_base',
         (
-            ('key', '[u8; 32]'),
+            ('key', '[u8; 33]'),
             ('description', '[u8; 512]'),
             ('asset_base', '[u8; 32]'),
         ),

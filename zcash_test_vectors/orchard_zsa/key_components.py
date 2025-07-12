@@ -24,7 +24,7 @@ class IssuanceKeys(object):
         if len(self.isk) != 32 or self.isk == b'\0' * 32:
             raise ValueError("invalid issuer key")
 
-        self.ik = pubkey_gen(self.isk)
+        self.ik = b'\0' + pubkey_gen(self.isk)
 
 
 def main():
@@ -95,7 +95,7 @@ def main():
             ('ask', '[u8; 32]'),
             ('ak', '[u8; 32]'),
             ('isk', '[u8; 32]'),
-            ('ik', '[u8; 32]'),
+            ('ik', '[u8; 33]'),
             ('nk', '[u8; 32]'),
             ('rivk', '[u8; 32]'),
             ('ivk', '[u8; 32]'),
