@@ -27,7 +27,7 @@ class IssuanceKeys(object):
         if len(self.isk) != 32 or self.isk == b'\0' * 32:
             raise ValueError("invalid issuer key")
 
-        self.ik = b'\0' + pubkey_gen(self.isk)
+        self.ik = zsa_schnorr_sig_algorithm_byte + pubkey_gen(self.isk)
 
 
 def main():
