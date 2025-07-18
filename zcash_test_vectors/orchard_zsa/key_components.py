@@ -15,6 +15,9 @@ from zcash_test_vectors.orchard_zsa.asset_base import native_asset
 # Key components
 #
 
+# The algorithm byte prefix for the encoding of the BIP340 Schnorr signature in ZIP227 is 0x00.
+zsa_schnorr_sig_algorithm_byte = b'\0'
+
 # The IssuanceKeys class contains the two issuance keys, isk and ik.
 # The instantiation is done using the byte representation of isk, and it generates ik appropriately.
 class IssuanceKeys(object):
