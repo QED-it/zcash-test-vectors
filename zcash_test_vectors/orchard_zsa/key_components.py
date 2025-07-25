@@ -16,7 +16,7 @@ from zcash_test_vectors.orchard_zsa.asset_base import native_asset
 #
 
 # The algorithm byte prefix for the encoding of the BIP340 Schnorr signature in ZIP227 is 0x00.
-zsa_schnorr_sig_algorithm_byte = b'\0'
+ZSA_BIP340_SIG_SCHEME = b'\0'
 
 # The IssuanceKeys class contains the two issuance keys, isk and ik.
 # The instantiation is done using the byte representation of isk, and it generates ik appropriately.
@@ -27,7 +27,7 @@ class IssuanceKeys(object):
         if len(self.isk) != 32 or self.isk == b'\0' * 32:
             raise ValueError("invalid issuer key")
 
-        self.ik = zsa_schnorr_sig_algorithm_byte + pubkey_gen(self.isk)
+        self.ik = ZSA_BIP340_SIG_SCHEME + pubkey_gen(self.isk)
 
 
 def main():
