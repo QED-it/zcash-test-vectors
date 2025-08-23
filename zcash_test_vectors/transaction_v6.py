@@ -124,6 +124,8 @@ class ActionGroupDescription(object):
         ret += write_compact_size(len(self.proofsOrchard))
         ret += self.proofsOrchard
         for desc in self.vActionsOrchard:
+            ret += write_compact_size(1)
+            ret += struct.pack('B', 0)
             ret += bytes(desc.spendAuthSig)
 
         return ret
@@ -199,6 +201,8 @@ class TransactionV6(TransactionBase):
             for ag in self.vActionGroupsOrchard:
                 ret += bytes(ag)
             ret += struct.pack('<Q', self.valueBalanceOrchard)
+            ret += write_compact_size(1)
+            ret += struct.pack('B', 0)
             ret += bytes(self.bindingSigOrchard)
 
         # OrchardZSA Issuance Fields

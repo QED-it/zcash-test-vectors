@@ -40,6 +40,7 @@ def orchard_zsa_auth_digest(tx):
 
     if len(tx.vActionGroupsOrchard) > 0:
         digest.update(orchard_zsa_action_groups_auth_digest(tx))
+        digest.update(bytes([0]))
         digest.update(bytes(tx.bindingSigOrchard))
 
     return digest.digest()
@@ -52,6 +53,7 @@ def orchard_zsa_action_groups_auth_digest(tx):
         for ag in tx.vActionGroupsOrchard:
             digest.update(ag.proofsOrchard)
             for desc in ag.vActionsOrchard:
+                digest.update(bytes([0]))
                 digest.update(bytes(desc.spendAuthSig))
 
     return digest.digest()
