@@ -6,7 +6,7 @@ from zcash_test_vectors.zip_0143 import SIGHASH_ALL
 from .orchard.key_components import FullViewingKey, SpendingKey
 from .orchard.pallas import Point
 from .orchard_zsa.key_components import IssuanceKeys, ZSA_BIP340_SIG_SCHEME
-from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION_BYTES
+from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION_BYTES, ORCHARD_SIGHASH_INFO_V0
 from .orchard_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes, asset_desc_digest
 from .zc_utils import write_compact_size
 from .transaction import (
@@ -124,8 +124,8 @@ class ActionGroupDescription(object):
         ret += write_compact_size(len(self.proofsOrchard))
         ret += self.proofsOrchard
         for desc in self.vActionsOrchard:
-            ret += write_compact_size(1)
-            ret += struct.pack('B', 0)
+            ret += write_compact_size(len(ORCHARD_SIGHASH_INFO_V0))
+            ret += bytes(ORCHARD_SIGHASH_INFO_V0)
             ret += bytes(desc.spendAuthSig)
 
         return ret
@@ -201,8 +201,8 @@ class TransactionV6(TransactionBase):
             for ag in self.vActionGroupsOrchard:
                 ret += bytes(ag)
             ret += struct.pack('<Q', self.valueBalanceOrchard)
-            ret += write_compact_size(1)
-            ret += struct.pack('B', 0)
+            ret += write_compact_size(len(ORCHARD_SIGHASH_INFO_V0))
+            ret += bytes(ORCHARD_SIGHASH_INFO_V0)
             ret += bytes(self.bindingSigOrchard)
 
         # OrchardZSA Issuance Fields
