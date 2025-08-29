@@ -30,7 +30,8 @@ class AssetBurnDescription(object):
         isk = IssuanceKeys(rand.b(32))
         desc_size = rand.u32() % 512 + 1
         desc_bytes = get_random_unicode_bytes(desc_size, rand)
-        asset_digest_bytes = asset_digest(encode_asset_id(isk.ik_encoding, desc_bytes))
+        asset_desc_hash = asset_desc_digest(desc_bytes)
+        asset_digest_bytes = asset_digest(encode_asset_id(isk.ik_encoding, asset_desc_hash))
         self.assetBase: Point = zsa_value_base(asset_digest_bytes)
         self.valueBurn = rand.u64()
 

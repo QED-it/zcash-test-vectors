@@ -22,8 +22,11 @@ def asset_desc_digest(asset_desc):
 
 
 def encode_asset_id(key, asset_desc_hash):
-    version_byte = ZSA_ASSETID_VERSION_BYTE
-    return version_byte + key + asset_desc_hash
+    if not (isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[0] == 0x00):
+        raise ValueError("issuer (ik_encoding) must be 33 bytes and start with 0x00")
+    if len(asset_desc_hash) != 32:
+        raise ValueError("assetDescHash must be 32 bytes")
+    return ZSA_ASSETID_VERSION_BYTE + key + asset_desc_hash
 
 
 def asset_digest(encoded_asset_id):
