@@ -201,10 +201,10 @@ def main():
     test_vectors = []
 
     # Since the burn fields are within the Orchard ZSA fields, we can't have burn without Orchard ZSA.
+    # We also cannot have issuance without Orchard ZSA.
     # This gives us the following choices for [have_orchard_zsa, have_burn, have_issuance]:
     allowed_choices = [
         [False, False, False],
-        [False, False, True],
         [True, False, False],
         [True, False, True],
         [True, True, False],
