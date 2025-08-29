@@ -2,6 +2,7 @@ import struct
 
 from zcash_test_vectors.bip340_reference import schnorr_sign
 from zcash_test_vectors.orchard_zsa.issuance_auth_sig import encode_issue_auth_sig
+from zcash_test_vectors.zip_0143 import SIGHASH_ALL
 from .orchard.key_components import FullViewingKey, SpendingKey
 from .orchard.pallas import Point
 from .orchard_zsa.key_components import IssuanceKeys, ZSA_BIP340_SIG_SCHEME
@@ -12,7 +13,8 @@ from .transaction import (
     NOTEENCRYPTION_AUTH_BYTES, ZC_SAPLING_ENCPLAINTEXT_SIZE,
     OrchardActionBase, TransactionBase,
 )
-from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, txid_digest
+from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, txid_digest, TransparentInput, \
+    signature_digest
 
 # Orchard ZSA note values
 ZC_ORCHARD_ZSA_ASSET_SIZE = 32
@@ -157,8 +159,11 @@ class TransactionV6(TransactionBase):
             self.issuer = IssuanceKeys(self.isk).ik_encoding
             for _ in range(rand.u8() % 5):
                 self.vIssueActions.append(IssueActionDescription(rand, self.issuer))
-            txid = txid_digest(self)
-            self.issueAuthSig = encode_issue_auth_sig(ZSA_BIP340_SIG_SCHEME, schnorr_sign(txid, self.isk, b'\0' * 32))
+
+            t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(self.vin))]
+            sighash_shielded = signature_digest(self, t_inputs, SIGHASH_ALL, None)
+
+            self.issueAuthSig = encode_issue_auth_sig(ZSA_BIP340_SIG_SCHEME, schnorr_sign(sighash_shielded, self.isk, b'\0' * 32))
 
     @staticmethod
     def version_bytes():
