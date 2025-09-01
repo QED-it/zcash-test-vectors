@@ -93,11 +93,11 @@ class IssueNote(object):
 
 
 class ActionGroupDescription(object):
-    def __init__(self, rand, anchor_orchard, proofs_orchard, is_coinbase, have_burn):
+    def __init__(self, rand, anchor_orchard, proofs_orchard, is_coinbase, have_burn, orchard_sighash_info):
         self.vActionsOrchard = []
         # There must always be a non-zero number of Action Descriptions in an Action Group.
         for _ in range(rand.u8() % 4 + 1):
-            self.vActionsOrchard.append(OrchardZSAActionDescription(rand, ORCHARD_SIGHASH_INFO_V0))
+            self.vActionsOrchard.append(OrchardZSAActionDescription(rand, orchard_sighash_info))
         # Three flag bits are defined, ensure only 3 bits used (mask with 0b00000111).
         self.flagsOrchard = (rand.u8() & 7)
         # Set the enableZSAs flag to true by OR with 0b00000100
@@ -144,7 +144,7 @@ class ActionGroupDescription(object):
 
 
 class TransactionV6(TransactionBase):
-    def __init__(self, rand, consensus_branch_id, orchard_sighash_info, issuance_sighash_info, have_orchard_zsa=True, have_burn=True, have_issuance=True):
+    def __init__(self, rand, consensus_branch_id, orchard_sighash_info, issue_sighash_info, have_orchard_zsa=True, have_burn=True, have_issuance=True):
 
         # We cannot have burns without an OrchardZSA bundle.
         assert have_orchard_zsa or not have_burn
@@ -160,7 +160,7 @@ class TransactionV6(TransactionBase):
         self.vActionGroupsOrchard = []
         if have_orchard_zsa:
             # For NU7 we have a maximum of one Action Group.
-            self.vActionGroupsOrchard.append(ActionGroupDescription(rand, self.anchorOrchard, self.proofsOrchard, self.is_coinbase(), have_burn))
+            self.vActionGroupsOrchard.append(ActionGroupDescription(rand, self.anchorOrchard, self.proofsOrchard, self.is_coinbase(), have_burn, orchard_sighash_info))
 
         # OrchardZSA Issuance Fields
         self.vIssueActions = []
@@ -173,7 +173,7 @@ class TransactionV6(TransactionBase):
             t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(self.vin))]
             sighash = signature_digest(self, t_inputs, SIGHASH_ALL, None)
 
-            self.issueAuthSigInfo = issuance_sighash_info
+            self.issueAuthSigInfo = issue_sighash_info
             self.issueAuthSig = encode_issue_auth_sig(ZSA_BIP340_SIG_SCHEME,
                                     schnorr_sign(sighash, self.isk, b'\0' * 32)
                                 )
