@@ -114,6 +114,7 @@ def issuance_digest(tx):
 def issuance_auth_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxAuthZSAOrHash')
     if len(tx.vIssueActions) > 0:
+        digest.update(bytes(ORCHARD_SIGHASH_INFO_V0))
         digest.update(tx.issueAuthSig)
     return digest.digest()
 

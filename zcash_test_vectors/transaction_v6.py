@@ -185,6 +185,8 @@ class TransactionV6(TransactionBase):
                 ret += bytes(desc)
             ret += write_compact_size(len(self.issuer))
             ret += self.issuer
+            ret += write_compact_size(len(ORCHARD_SIGHASH_INFO_V0))
+            ret += bytes(ORCHARD_SIGHASH_INFO_V0)
             ret += write_compact_size(len(self.issueAuthSig))
             ret += bytes(self.issueAuthSig)
         return ret
