@@ -13,7 +13,7 @@ from .transaction import (
     NOTEENCRYPTION_AUTH_BYTES, ZC_SAPLING_ENCPLAINTEXT_SIZE,
     OrchardActionBase, TransactionBase,
 )
-from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, txid_digest, TransparentInput, \
+from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, TransparentInput, \
     signature_digest
 
 # Orchard ZSA note values
@@ -33,7 +33,9 @@ class AssetBurnDescription(object):
         desc_size = rand.u32() % 512 + 1
         desc_bytes = get_random_unicode_bytes(desc_size, rand)
         asset_desc_hash = asset_desc_digest(desc_bytes)
-        asset_digest_bytes = asset_digest(encode_asset_id(isk.ik_encoding, asset_desc_hash))
+        asset_digest_bytes = asset_digest(
+            encode_asset_id(isk.ik_encoding, asset_desc_hash)
+        )
         self.assetBase: Point = zsa_value_base(asset_digest_bytes)
         self.valueBurn = rand.u64()
 
@@ -68,7 +70,9 @@ class IssueNote(object):
         fvk_r = FullViewingKey.from_spending_key(SpendingKey(rand.b(32)))
         self.recipient = fvk_r.default_d() + bytes(fvk_r.default_pkd())
         self.value = rand.u64()
-        asset_digest_bytes = asset_digest(encode_asset_id(ik_encoding, asset_desc_hash))
+        asset_digest_bytes = asset_digest(
+            encode_asset_id(ik_encoding, asset_desc_hash)
+        )
         self.assetBase = zsa_value_base(asset_digest_bytes)
         self.rho = Point.rand(rand).extract()
         self.rseed = rand.b(32)
@@ -161,9 +165,11 @@ class TransactionV6(TransactionBase):
                 self.vIssueActions.append(IssueActionDescription(rand, self.issuer))
 
             t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(self.vin))]
-            sighash_shielded = signature_digest(self, t_inputs, SIGHASH_ALL, None)
+            sighash = signature_digest(self, t_inputs, SIGHASH_ALL, None)
 
-            self.issueAuthSig = encode_issue_auth_sig(ZSA_BIP340_SIG_SCHEME, schnorr_sign(sighash_shielded, self.isk, b'\0' * 32))
+            self.issueAuthSig = encode_issue_auth_sig(ZSA_BIP340_SIG_SCHEME,
+                                    schnorr_sign(sighash, self.isk, b'\0' * 32)
+                                )
 
     @staticmethod
     def version_bytes():
