@@ -21,8 +21,8 @@ ZC_ORCHARD_ZSA_ASSET_SIZE = 32
 ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE = ZC_SAPLING_ENCPLAINTEXT_SIZE + ZC_ORCHARD_ZSA_ASSET_SIZE
 ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE = ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE + NOTEENCRYPTION_AUTH_BYTES
 
-# SighashInfo
-ORCHARD_ISSUE_SIGHASH_INFO_V0 = [0] + [] # sighashInfo = [sighashVersion] || associatedData
+# For Transparent, Sapling, Orchard and Issuance signatures, SighashInfo V0 is equal to ([0] || [])
+SIGHASH_INFO_V0 = [0] + [] # sighashInfo = [sighashVersion] || associatedData
 
 
 class OrchardZSAActionDescription(OrchardActionBase):
@@ -145,13 +145,17 @@ class ActionGroupDescription(object):
 
 
 class TransactionV6(TransactionBase):
-    def __init__(self, rand, consensus_branch_id, orchard_sighash_info, issue_sighash_info, have_orchard_zsa=True, have_burn=True, have_issuance=True):
+    def __init__(self, rand, consensus_branch_id, transparent_sighash_info, sapling_sighash_info, orchard_sighash_info, issue_sighash_info, have_orchard_zsa=True, have_burn=True, have_issuance=True):
 
         # We cannot have burns without an OrchardZSA bundle.
         assert have_orchard_zsa or not have_burn
 
         # All Transparent, Sapling, and part of the Orchard Transaction Fields are initialized in the super class.
         super().__init__(rand, have_orchard_zsa)
+        self.vSighashInfo = [transparent_sighash_info] * len(self.vin)
+        for desc in self.vSpendsSapling:
+            desc.spendAuthSigInfo = sapling_sighash_info
+        self.bindingSigSaplingInfo = sapling_sighash_info
         self.bindingSigOrchardInfo = orchard_sighash_info
 
 
@@ -239,7 +243,7 @@ def main():
 
     for choice in allowed_choices:
         for _ in range(2):    # We generate two test vectors for each choice.
-            tx = TransactionV6(rand, consensus_branch_id, ORCHARD_ISSUE_SIGHASH_INFO_V0, ORCHARD_ISSUE_SIGHASH_INFO_V0, *choice)
+            tx = TransactionV6(rand, consensus_branch_id, SIGHASH_INFO_V0, SIGHASH_INFO_V0, SIGHASH_INFO_V0, SIGHASH_INFO_V0, *choice)
             populate_test_vector(rand, test_vectors, tx)
 
     generate_test_vectors('orchard_zsa_digests', test_vectors)
