@@ -22,12 +22,14 @@ ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE = ZC_SAPLING_ENCPLAINTEXT_SIZE + ZC_ORCHARD_ZSA
 ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE = ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE + NOTEENCRYPTION_AUTH_BYTES
 
 # SighashInfo
-ORCHARD_ISSUE_SIGHASH_INFO_V0 = [0]
+ORCHARD_ISSUE_SIGHASH_INFO_V0 = [0] + [] # sighashInfo = [sighashVersion] || associatedData
 
 
 class OrchardZSAActionDescription(OrchardActionBase):
-    def __init__(self, rand, spend_auth_sig_info):
-        super().__init__(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE, rand, spend_auth_sig_info)
+    def __init__(self, rand, orchard_sighash_info):
+        super().__init__(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE, rand)
+        self.spendAuthSigInfo = orchard_sighash_info
+
 
 
 class AssetBurnDescription(object):
@@ -149,7 +151,9 @@ class TransactionV6(TransactionBase):
         assert have_orchard_zsa or not have_burn
 
         # All Transparent, Sapling, and part of the Orchard Transaction Fields are initialized in the super class.
-        super().__init__(rand, have_orchard_zsa, orchard_sighash_info)
+        super().__init__(rand, have_orchard_zsa)
+        self.bindingSigOrchardInfo = orchard_sighash_info
+
 
         # Common Transaction Fields
         self.nVersionGroupId = NU7_VERSION_GROUP_ID

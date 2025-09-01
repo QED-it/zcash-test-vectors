@@ -160,7 +160,7 @@ class OutputDescription(object):
         )
 
 class OrchardActionBase(object):
-    def __init__(self, enc_ciphertext_size, rand, spend_auth_sig_info=None):
+    def __init__(self, enc_ciphertext_size, rand):
         # We don't need to take account of whether this is a coinbase transaction,
         # because we're only generating random fields.
         self.cv = pallas_group_hash(b'TVRandPt', rand.b(32))
@@ -170,7 +170,6 @@ class OrchardActionBase(object):
         self.ephemeralKey = pallas_group_hash(b'TVRandPt', rand.b(32))
         self.encCiphertext = rand.b(enc_ciphertext_size)
         self.outCiphertext = rand.b(ZC_SAPLING_OUTCIPHERTEXT_SIZE)
-        self.spendAuthSigInfo = spend_auth_sig_info
         self.spendAuthSig = RedPallasSignature(rand)
 
     def __bytes__(self):
@@ -419,7 +418,7 @@ class LegacyTransaction(object):
 
 # Creating a base transaction class with common fields that V5 and subsequent versions can inherit.
 class TransactionBase(object):
-    def __init__(self, rand, have_orchard=True, orchard_sighash_info=None):
+    def __init__(self, rand, have_orchard=True):
         # Decide which transaction parts will be generated.
         flip_coins = rand.u8()
         have_transparent_in = (flip_coins >> 0) % 2
@@ -470,7 +469,6 @@ class TransactionBase(object):
             self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
             self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
             self.proofsOrchard = rand.b(rand.u8() + 32) # Proof will always contain at least one element
-            self.bindingSigOrchardInfo = orchard_sighash_info
             self.bindingSigOrchard = RedPallasSignature(rand)
         else:
             # If valueBalanceOrchard is not present in the serialized transaction, then
