@@ -6,7 +6,7 @@ from zcash_test_vectors.zip_0143 import SIGHASH_ALL
 from .orchard.key_components import FullViewingKey, SpendingKey
 from .orchard.pallas import Point
 from .orchard_zsa.key_components import IssuanceKeys, ZSA_BIP340_SIG_SCHEME
-from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION_BYTES, ORCHARD_SIGHASH_INFO_V0
+from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION_BYTES
 from .orchard_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes, asset_desc_digest
 from .zc_utils import write_compact_size
 from .transaction import (
@@ -21,10 +21,14 @@ ZC_ORCHARD_ZSA_ASSET_SIZE = 32
 ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE = ZC_SAPLING_ENCPLAINTEXT_SIZE + ZC_ORCHARD_ZSA_ASSET_SIZE
 ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE = ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE + NOTEENCRYPTION_AUTH_BYTES
 
+# SighashInfo
+ORCHARD_SIGHASH_INFO_V0 = [0]
+ISSUANCE_SIGHASH_INFO_V0 = [0]
+
 
 class OrchardZSAActionDescription(OrchardActionBase):
-    def __init__(self, rand):
-        super().__init__(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE, rand)
+    def __init__(self, rand, spend_auth_sig_info):
+        super().__init__(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE, rand, spend_auth_sig_info)
 
 
 class AssetBurnDescription(object):
@@ -93,7 +97,7 @@ class ActionGroupDescription(object):
         self.vActionsOrchard = []
         # There must always be a non-zero number of Action Descriptions in an Action Group.
         for _ in range(rand.u8() % 4 + 1):
-            self.vActionsOrchard.append(OrchardZSAActionDescription(rand))
+            self.vActionsOrchard.append(OrchardZSAActionDescription(rand, ORCHARD_SIGHASH_INFO_V0))
         # Three flag bits are defined, ensure only 3 bits used (mask with 0b00000111).
         self.flagsOrchard = (rand.u8() & 7)
         # Set the enableZSAs flag to true by OR with 0b00000100
@@ -124,8 +128,8 @@ class ActionGroupDescription(object):
         ret += write_compact_size(len(self.proofsOrchard))
         ret += self.proofsOrchard
         for desc in self.vActionsOrchard:
-            ret += write_compact_size(len(ORCHARD_SIGHASH_INFO_V0))
-            ret += bytes(ORCHARD_SIGHASH_INFO_V0)
+            ret += write_compact_size(len(desc.spendAuthSigInfo))
+            ret += bytes(desc.spendAuthSigInfo)
             ret += bytes(desc.spendAuthSig)
 
         return ret
@@ -140,13 +144,13 @@ class ActionGroupDescription(object):
 
 
 class TransactionV6(TransactionBase):
-    def __init__(self, rand, consensus_branch_id, have_orchard_zsa=True, have_burn=True, have_issuance=True):
+    def __init__(self, rand, consensus_branch_id, orchard_sighash_info, issuance_sighash_info, have_orchard_zsa=True, have_burn=True, have_issuance=True):
 
         # We cannot have burns without an OrchardZSA bundle.
         assert have_orchard_zsa or not have_burn
 
         # All Transparent, Sapling, and part of the Orchard Transaction Fields are initialized in the super class.
-        super().__init__(rand, have_orchard_zsa)
+        super().__init__(rand, have_orchard_zsa, orchard_sighash_info)
 
         # Common Transaction Fields
         self.nVersionGroupId = NU7_VERSION_GROUP_ID
@@ -169,6 +173,7 @@ class TransactionV6(TransactionBase):
             t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(self.vin))]
             sighash = signature_digest(self, t_inputs, SIGHASH_ALL, None)
 
+            self.issueAuthSigInfo = issuance_sighash_info
             self.issueAuthSig = encode_issue_auth_sig(ZSA_BIP340_SIG_SCHEME,
                                     schnorr_sign(sighash, self.isk, b'\0' * 32)
                                 )
@@ -185,8 +190,8 @@ class TransactionV6(TransactionBase):
                 ret += bytes(desc)
             ret += write_compact_size(len(self.issuer))
             ret += self.issuer
-            ret += write_compact_size(len(ORCHARD_SIGHASH_INFO_V0))
-            ret += bytes(ORCHARD_SIGHASH_INFO_V0)
+            ret += write_compact_size(len(self.issueAuthSigInfo))
+            ret += bytes(self.issueAuthSigInfo)
             ret += write_compact_size(len(self.issueAuthSig))
             ret += bytes(self.issueAuthSig)
         return ret
@@ -203,8 +208,8 @@ class TransactionV6(TransactionBase):
             for ag in self.vActionGroupsOrchard:
                 ret += bytes(ag)
             ret += struct.pack('<Q', self.valueBalanceOrchard)
-            ret += write_compact_size(len(ORCHARD_SIGHASH_INFO_V0))
-            ret += bytes(ORCHARD_SIGHASH_INFO_V0)
+            ret += write_compact_size(len(self.bindingSigOrchardInfo))
+            ret += bytes(self.bindingSigOrchardInfo)
             ret += bytes(self.bindingSigOrchard)
 
         # OrchardZSA Issuance Fields
@@ -231,7 +236,7 @@ def main():
 
     for choice in allowed_choices:
         for _ in range(2):    # We generate two test vectors for each choice.
-            tx = TransactionV6(rand, consensus_branch_id, *choice)
+            tx = TransactionV6(rand, consensus_branch_id, ORCHARD_SIGHASH_INFO_V0, ISSUANCE_SIGHASH_INFO_V0, *choice)
             populate_test_vector(rand, test_vectors, tx)
 
     generate_test_vectors('orchard_zsa_digests', test_vectors)

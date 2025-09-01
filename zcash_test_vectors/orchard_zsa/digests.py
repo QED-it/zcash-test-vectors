@@ -7,7 +7,6 @@ import struct
 NU7_VERSION_GROUP_ID = 0x77777777
 NU7_TX_VERSION = 6
 NU7_TX_VERSION_BYTES = NU7_TX_VERSION | (1 << 31)
-ORCHARD_SIGHASH_INFO_V0 = [0]
 
 
 def orchard_zsa_digest(tx):
@@ -41,7 +40,7 @@ def orchard_zsa_auth_digest(tx):
 
     if len(tx.vActionGroupsOrchard) > 0:
         digest.update(orchard_zsa_action_groups_auth_digest(tx))
-        digest.update(bytes(ORCHARD_SIGHASH_INFO_V0))
+        digest.update(bytes(tx.bindingSigOrchardInfo))
         digest.update(bytes(tx.bindingSigOrchard))
 
     return digest.digest()
@@ -54,7 +53,7 @@ def orchard_zsa_action_groups_auth_digest(tx):
         for ag in tx.vActionGroupsOrchard:
             digest.update(ag.proofsOrchard)
             for desc in ag.vActionsOrchard:
-                digest.update(bytes(ORCHARD_SIGHASH_INFO_V0))
+                digest.update(bytes(desc.spendAuthSigInfo))
                 digest.update(bytes(desc.spendAuthSig))
 
     return digest.digest()
@@ -114,7 +113,7 @@ def issuance_digest(tx):
 def issuance_auth_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxAuthZSAOrHash')
     if len(tx.vIssueActions) > 0:
-        digest.update(bytes(ORCHARD_SIGHASH_INFO_V0))
+        digest.update(bytes(tx.issueAuthSigInfo))
         digest.update(tx.issueAuthSig)
     return digest.digest()
 
