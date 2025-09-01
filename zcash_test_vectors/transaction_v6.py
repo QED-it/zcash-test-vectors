@@ -1,9 +1,11 @@
 import struct
 
 from zcash_test_vectors.bip340_reference import schnorr_sign
+from zcash_test_vectors.orchard_zsa.issuance_auth_sig import encode_issue_auth_sig
+from zcash_test_vectors.zip_0143 import SIGHASH_ALL
 from .orchard.key_components import FullViewingKey, SpendingKey
 from .orchard.pallas import Point
-from .orchard_zsa.key_components import IssuanceKeys
+from .orchard_zsa.key_components import IssuanceKeys, ZSA_BIP340_SIG_SCHEME
 from .orchard_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION_BYTES
 from .orchard_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes, asset_desc_digest
 from .zc_utils import write_compact_size
@@ -11,7 +13,8 @@ from .transaction import (
     NOTEENCRYPTION_AUTH_BYTES, ZC_SAPLING_ENCPLAINTEXT_SIZE,
     OrchardActionBase, TransactionBase,
 )
-from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, txid_digest
+from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, TransparentInput, \
+    signature_digest
 
 # Orchard ZSA note values
 ZC_ORCHARD_ZSA_ASSET_SIZE = 32
@@ -29,7 +32,10 @@ class AssetBurnDescription(object):
         isk = IssuanceKeys(rand.b(32))
         desc_size = rand.u32() % 512 + 1
         desc_bytes = get_random_unicode_bytes(desc_size, rand)
-        asset_digest_bytes = asset_digest(encode_asset_id(isk.ik, desc_bytes))
+        asset_desc_hash = asset_desc_digest(desc_bytes)
+        asset_digest_bytes = asset_digest(
+            encode_asset_id(isk.ik_encoding, asset_desc_hash)
+        )
         self.assetBase: Point = zsa_value_base(asset_digest_bytes)
         self.valueBurn = rand.u64()
 
@@ -38,12 +44,12 @@ class AssetBurnDescription(object):
 
 
 class IssueActionDescription(object):
-    def __init__(self, rand, ik):
+    def __init__(self, rand, ik_encoding):
         self.assetDescSize = rand.u32() % 512 + 1
         self.asset_desc_hash = asset_desc_digest(get_random_unicode_bytes(self.assetDescSize, rand))
         self.vNotes = []
         for _ in range(rand.u8() % 5):
-            self.vNotes.append(IssueNote(rand, ik, self.asset_desc_hash))
+            self.vNotes.append(IssueNote(rand, ik_encoding, self.asset_desc_hash))
         self.flagsIssuance = rand.u8() & 1  # Only one bit is reserved for the finalize flag currently
 
     def __bytes__(self):
@@ -60,11 +66,13 @@ class IssueActionDescription(object):
 
 
 class IssueNote(object):
-    def __init__(self, rand, ik, asset_desc_hash):
+    def __init__(self, rand, ik_encoding, asset_desc_hash):
         fvk_r = FullViewingKey.from_spending_key(SpendingKey(rand.b(32)))
         self.recipient = fvk_r.default_d() + bytes(fvk_r.default_pkd())
         self.value = rand.u64()
-        asset_digest_bytes = asset_digest(encode_asset_id(ik, asset_desc_hash))
+        asset_digest_bytes = asset_digest(
+            encode_asset_id(ik_encoding, asset_desc_hash)
+        )
         self.assetBase = zsa_value_base(asset_digest_bytes)
         self.rho = Point.rand(rand).extract()
         self.rseed = rand.b(32)
@@ -152,11 +160,16 @@ class TransactionV6(TransactionBase):
         self.vIssueActions = []
         if have_issuance:
             self.isk = rand.b(32)
-            self.ik = IssuanceKeys(self.isk).ik
+            self.issuer = IssuanceKeys(self.isk).ik_encoding
             for _ in range(rand.u8() % 5):
-                self.vIssueActions.append(IssueActionDescription(rand, self.ik))
-            txid = txid_digest(self)
-            self.issueAuthSig = schnorr_sign(txid, self.isk, b'\0' * 32)
+                self.vIssueActions.append(IssueActionDescription(rand, self.issuer))
+
+            t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(self.vin))]
+            sighash = signature_digest(self, t_inputs, SIGHASH_ALL, None)
+
+            self.issueAuthSig = encode_issue_auth_sig(ZSA_BIP340_SIG_SCHEME,
+                                    schnorr_sign(sighash, self.isk, b'\0' * 32)
+                                )
 
     @staticmethod
     def version_bytes():
@@ -168,7 +181,9 @@ class TransactionV6(TransactionBase):
         if len(self.vIssueActions) > 0:
             for desc in self.vIssueActions:
                 ret += bytes(desc)
-            ret += self.ik
+            ret += write_compact_size(len(self.issuer))
+            ret += self.issuer
+            ret += write_compact_size(len(self.issueAuthSig))
             ret += bytes(self.issueAuthSig)
         return ret
 
@@ -198,10 +213,10 @@ def main():
     test_vectors = []
 
     # Since the burn fields are within the Orchard ZSA fields, we can't have burn without Orchard ZSA.
+    # We also cannot have issuance without Orchard ZSA.
     # This gives us the following choices for [have_orchard_zsa, have_burn, have_issuance]:
     allowed_choices = [
         [False, False, False],
-        [False, False, True],
         [True, False, False],
         [True, False, True],
         [True, True, False],

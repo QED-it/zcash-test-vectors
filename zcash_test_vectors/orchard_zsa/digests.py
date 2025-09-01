@@ -103,7 +103,7 @@ def issuance_digest(tx):
 
     if len(tx.vIssueActions) > 0:
         digest.update(issue_actions_digest(tx))
-        digest.update(tx.ik)
+        digest.update(tx.issuer)
 
     return digest.digest()
 

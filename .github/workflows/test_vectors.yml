@@ -24,6 +24,9 @@ jobs:
         with:
           python-version: '3.9'
 
+      - name: Update apt
+        run: sudo apt-get update
+
       - name: Install gnome-keyring
         run: sudo apt-get install gnome-keyring
 

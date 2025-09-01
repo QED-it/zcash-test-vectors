@@ -9,6 +9,7 @@ from hashlib import blake2b
 from ..orchard.group_hash import group_hash
 from ..output import render_args, render_tv
 
+ZSA_ASSETID_VERSION_BYTE = b"\x00"
 
 def native_asset():
     return group_hash(b"z.cash:Orchard-cv", b"v")
@@ -21,8 +22,11 @@ def asset_desc_digest(asset_desc):
 
 
 def encode_asset_id(key, asset_desc_hash):
-    version_byte = b"\x00"
-    return version_byte + key + asset_desc_hash
+    if not (isinstance(key, (bytes, bytearray)) and len(key) == 33 and key[0] == 0x00):
+        raise ValueError("issuer (ik_encoding) must be 33 bytes and start with 0x00")
+    if len(asset_desc_hash) != 32:
+        raise ValueError("assetDescHash must be 32 bytes")
+    return ZSA_ASSETID_VERSION_BYTE + key + asset_desc_hash
 
 
 def asset_digest(encoded_asset_id):
@@ -87,7 +91,7 @@ def main():
     for i in range(0, 20):
         isk = IssuanceKeys(rand.b(32))
 
-        key_bytes = bytes(isk.ik)
+        key_bytes = bytes(isk.ik_encoding)
         description_bytes = get_random_unicode_bytes(512, rand)
         asset_desc_hash = asset_desc_digest(description_bytes)
         asset_base = zsa_value_base(asset_digest(encode_asset_id(key_bytes, asset_desc_hash)))
@@ -102,7 +106,7 @@ def main():
         args,
         'orchard_zsa_asset_base',
         (
-            ('key', '[u8; 32]'),
+            ('key', '[u8; 33]'),
             ('description', '[u8; 512]'),
             ('asset_base', '[u8; 32]'),
         ),
