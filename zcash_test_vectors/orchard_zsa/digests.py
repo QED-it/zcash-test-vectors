@@ -4,6 +4,8 @@ import sys; assert sys.version_info[0] >= 3, "Python 3 required."
 from hashlib import blake2b
 import struct
 
+from ..zc_utils import write_compact_size
+
 NU7_VERSION_GROUP_ID = 0x77777777
 NU7_TX_VERSION = 6
 NU7_TX_VERSION_BYTES = NU7_TX_VERSION | (1 << 31)
@@ -40,6 +42,7 @@ def orchard_zsa_auth_digest(tx):
 
     if len(tx.vActionGroupsOrchard) > 0:
         digest.update(orchard_zsa_action_groups_auth_digest(tx))
+        digest.update(write_compact_size(len(tx.bindingSigOrchardInfo)))
         digest.update(bytes(tx.bindingSigOrchardInfo))
         digest.update(bytes(tx.bindingSigOrchard))
 
@@ -53,6 +56,7 @@ def orchard_zsa_action_groups_auth_digest(tx):
         for ag in tx.vActionGroupsOrchard:
             digest.update(ag.proofsOrchard)
             for desc in ag.vActionsOrchard:
+                digest.update(write_compact_size(len(desc.spendAuthSigInfo)))
                 digest.update(bytes(desc.spendAuthSigInfo))
                 digest.update(bytes(desc.spendAuthSig))
 
@@ -113,6 +117,7 @@ def issuance_digest(tx):
 def issuance_auth_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxAuthZSAOrHash')
     if len(tx.vIssueActions) > 0:
+        digest.update(write_compact_size(len(tx.issueAuthSigInfo)))
         digest.update(bytes(tx.issueAuthSigInfo))
         digest.update(tx.issueAuthSig)
     return digest.digest()
