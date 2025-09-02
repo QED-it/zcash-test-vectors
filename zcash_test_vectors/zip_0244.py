@@ -45,13 +45,6 @@ def transparent_scripts_digest(tx):
         digest.update(bytes(x.scriptSig))
     return digest.digest()
 
-def transparent_scripts_digest_v6(tx):
-    digest = blake2b(digest_size=32, person=b'ZTxAuthTransHash')
-    for sighash_info, x in zip(tx.vSighashInfo, tx.vin):
-        digest.update(bytes(sighash_info))
-        digest.update(bytes(x.scriptSig))
-    return digest.digest()
-
 # Sapling
 
 def sapling_digest(tx):
@@ -74,22 +67,6 @@ def sapling_auth_digest(tx):
             digest.update(bytes(desc.spendAuthSig))
         for desc in tx.vOutputsSapling:
             digest.update(bytes(desc.proof))
-        digest.update(bytes(tx.bindingSigSapling))
-
-    return digest.digest()
-
-def sapling_auth_digest_v6(tx):
-    digest = blake2b(digest_size=32, person=b'ZTxAuthSapliHash')
-
-    if len(tx.vSpendsSapling) + len(tx.vOutputsSapling) > 0:
-        for desc in tx.vSpendsSapling:
-            digest.update(bytes(desc.proof))
-        for desc in tx.vSpendsSapling:
-            digest.update(bytes(desc.spendAuthSigInfo))
-            digest.update(bytes(desc.spendAuthSig))
-        for desc in tx.vOutputsSapling:
-            digest.update(bytes(desc.proof))
-        digest.update(bytes(tx.bindingSigSaplingInfo))
         digest.update(bytes(tx.bindingSigSapling))
 
     return digest.digest()
@@ -244,14 +221,12 @@ def auth_digest(tx):
         person=b'ZTxAuthHash_' + struct.pack('<I', tx.nConsensusBranchId),
     )
 
+    digest.update(transparent_scripts_digest(tx))
+    digest.update(sapling_auth_digest(tx))
     if tx.version_bytes() == NU7_TX_VERSION_BYTES:
-        digest.update(transparent_scripts_digest_v6(tx))
-        digest.update(sapling_auth_digest_v6(tx))
         digest.update(orchard_zsa_auth_digest(tx))
         digest.update(issuance_auth_digest(tx))
     else:
-        digest.update(transparent_scripts_digest(tx))
-        digest.update(sapling_auth_digest(tx))
         digest.update(orchard_auth_digest(tx))
 
     return digest.digest()
