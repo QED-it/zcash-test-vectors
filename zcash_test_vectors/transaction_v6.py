@@ -26,9 +26,9 @@ SIGHASH_INFO_V0 = [0] + [] # sighashInfo = [sighashVersion] || associatedData
 
 
 class OrchardZSAActionDescription(OrchardActionBase):
-    def __init__(self, rand, orchard_sighash_info):
+    def __init__(self, rand, sighash_info):
         super().__init__(ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE, rand)
-        self.spendAuthSigInfo = orchard_sighash_info
+        self.spendAuthSigInfo = sighash_info
 
 
 class AssetBurnDescription(object):
@@ -93,11 +93,11 @@ class IssueNote(object):
 
 
 class ActionGroupDescription(object):
-    def __init__(self, rand, anchor_orchard, proofs_orchard, is_coinbase, have_burn, orchard_sighash_info):
+    def __init__(self, rand, anchor_orchard, proofs_orchard, is_coinbase, have_burn, sighash_info):
         self.vActionsOrchard = []
         # There must always be a non-zero number of Action Descriptions in an Action Group.
         for _ in range(rand.u8() % 4 + 1):
-            self.vActionsOrchard.append(OrchardZSAActionDescription(rand, orchard_sighash_info))
+            self.vActionsOrchard.append(OrchardZSAActionDescription(rand, sighash_info))
         # Three flag bits are defined, ensure only 3 bits used (mask with 0b00000111).
         self.flagsOrchard = (rand.u8() & 7)
         # Set the enableZSAs flag to true by OR with 0b00000100
@@ -162,7 +162,7 @@ class TransactionV6(TransactionBase):
         self.vActionGroupsOrchard = []
         if have_orchard_zsa:
             # For NU7 we have a maximum of one Action Group.
-            self.vActionGroupsOrchard.append(ActionGroupDescription(rand, self.anchorOrchard, self.proofsOrchard, self.is_coinbase(), have_burn, orchard_sighash_info))
+            self.vActionGroupsOrchard.append(ActionGroupDescription(rand, self.anchorOrchard, self.proofsOrchard, self.is_coinbase(), have_burn, sighash_info))
 
         # OrchardZSA Issuance Fields
         self.vIssueActions = []
