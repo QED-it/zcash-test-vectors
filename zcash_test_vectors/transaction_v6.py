@@ -21,8 +21,8 @@ ZC_ORCHARD_ZSA_ASSET_SIZE = 32
 ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE = ZC_SAPLING_ENCPLAINTEXT_SIZE + ZC_ORCHARD_ZSA_ASSET_SIZE
 ZC_ORCHARD_ZSA_ENCCIPHERTEXT_SIZE = ZC_ORCHARD_ZSA_ENCPLAINTEXT_SIZE + NOTEENCRYPTION_AUTH_BYTES
 
-# SighashInfo
-ORCHARD_ISSUE_SIGHASH_INFO_V0 = [0] + [] # sighashInfo = [sighashVersion] || associatedData
+# SighashInfo V0
+SIGHASH_INFO_V0 = [0] + [] # sighashInfo = [sighashVersion] || associatedData
 
 
 class OrchardZSAActionDescription(OrchardActionBase):
@@ -239,7 +239,7 @@ def main():
 
     for choice in allowed_choices:
         for _ in range(2):    # We generate two test vectors for each choice.
-            tx = TransactionV6(rand, consensus_branch_id, ORCHARD_ISSUE_SIGHASH_INFO_V0, ORCHARD_ISSUE_SIGHASH_INFO_V0, *choice)
+            tx = TransactionV6(rand, consensus_branch_id, SIGHASH_INFO_V0, SIGHASH_INFO_V0, *choice)
             populate_test_vector(rand, test_vectors, tx)
 
     generate_test_vectors('orchard_zsa_digests', test_vectors)
