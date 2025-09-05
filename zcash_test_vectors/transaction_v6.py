@@ -151,6 +151,10 @@ class TransactionV6(TransactionBase):
 
         # All Transparent, Sapling, and part of the Orchard Transaction Fields are initialized in the super class.
         super().__init__(rand, have_orchard_zsa)
+        self.vSighashInfo = [sighash_info] * len(self.vin)
+        for desc in self.vSpendsSapling:
+            desc.spendAuthSigInfo = sighash_info
+        self.bindingSigSaplingInfo = sighash_info
         self.bindingSigOrchardInfo = sighash_info
 
 
@@ -238,7 +242,7 @@ def main():
 
     for choice in allowed_choices:
         for _ in range(2):    # We generate two test vectors for each choice.
-            tx = TransactionV6(rand, consensus_branch_id, SIGHASH_INFO_V0,  *choice)
+            tx = TransactionV6(rand, consensus_branch_id, SIGHASH_INFO_V0, *choice)
             populate_test_vector(rand, test_vectors, tx)
 
     generate_test_vectors('orchard_zsa_digests', test_vectors)
