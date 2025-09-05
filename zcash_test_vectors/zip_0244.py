@@ -48,9 +48,10 @@ def transparent_scripts_digest(tx):
 
 def transparent_scripts_digest_v6(tx):
     digest = blake2b(digest_size=32, person=b'ZTxAuthTransHash')
-    for sighash_info, x in zip(tx.vSighashInfo, tx.vin):
+    for sighash_info in tx.vSighashInfo:
         digest.update(write_compact_size(len(sighash_info)))
         digest.update(bytes(sighash_info))
+    for x in tx.vin:
         digest.update(bytes(x.scriptSig))
     return digest.digest()
 
