@@ -149,6 +149,9 @@ class TransactionV6(TransactionBase):
 
         # All Transparent, Sapling, and part of the Orchard Transaction Fields are initialized in the super class.
         super().__init__(rand, have_orchard_zsa)
+        for desc in self.vSpendsSapling:
+            desc.spendAuthSigInfo = sighash_info
+        self.bindingSigSaplingInfo = sighash_info
         self.bindingSigOrchardInfo = sighash_info
 
 
