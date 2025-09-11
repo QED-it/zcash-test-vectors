@@ -108,8 +108,9 @@ def issuance_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdSAIssueHash')
 
     if len(tx.vIssueActions) > 0:
-        digest.update(issue_actions_digest(tx))
+        digest.update(write_compact_size(len(tx.issuer)))
         digest.update(tx.issuer)
+        digest.update(issue_actions_digest(tx))
 
     return digest.digest()
 
@@ -127,8 +128,8 @@ def issue_actions_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdIssuActHash')
 
     for action in tx.vIssueActions:
-        digest.update(issue_notes_digest(action))
         digest.update(action.asset_desc_hash)
+        digest.update(issue_notes_digest(action))
         digest.update(struct.pack('<B', action.flagsIssuance))
 
     return digest.digest()
@@ -140,7 +141,6 @@ def issue_notes_digest(action):
     for note in action.vNotes:
         digest.update(bytes(note.recipient))
         digest.update(struct.pack('<Q', note.value))
-        digest.update(bytes(note.assetBase))
         digest.update(bytes(note.rho))
         digest.update(note.rseed)
 
