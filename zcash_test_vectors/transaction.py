@@ -481,7 +481,7 @@ class TransactionBase(object):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
 
-    def to_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId):
+    def to_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId, hasSighashInfo = False):
         ret = b''
 
         # Common Transaction Fields
@@ -516,14 +516,14 @@ class TransactionBase(object):
             for desc in self.vSpendsSapling: # vSpendProofsSapling
                 ret += bytes(desc.proof)
             for desc in self.vSpendsSapling: # vSpendAuthSigsSapling
-                if hasattr(desc, 'spendAuthSigInfo'):
+                if hasSighashInfo:
                     ret += write_compact_size(len(desc.spendAuthSigInfo))
                     ret += bytes(desc.spendAuthSigInfo)
                 ret += bytes(desc.spendAuthSig)
         for desc in self.vOutputsSapling: # vOutputProofsSapling
             ret += bytes(desc.proof)
         if hasSapling:
-            if hasattr(self, 'bindingSigSaplingInfo'):
+            if hasSighashInfo:
                 ret += write_compact_size(len(self.bindingSigSaplingInfo))
                 ret += bytes(self.bindingSigSaplingInfo)
             ret += bytes(self.bindingSigSapling)

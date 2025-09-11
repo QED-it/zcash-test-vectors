@@ -208,7 +208,7 @@ class TransactionV6(TransactionBase):
         ret = b''
 
         # Common Transaction Fields
-        ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
+        ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId, True)
 
         # OrchardZSA Transaction Fields
         ret += write_compact_size(len(self.vActionGroupsOrchard))
