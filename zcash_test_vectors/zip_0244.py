@@ -59,8 +59,10 @@ def sapling_digest(tx):
 
     return digest.digest()
 
+SAPLING_AUTH_DIGEST_PERSONALIZAION = b'ZTxAuthSapliHash'
+
 def sapling_auth_digest(tx):
-    digest = blake2b(digest_size=32, person=b'ZTxAuthSapliHash')
+    digest = blake2b(digest_size=32, person=SAPLING_AUTH_DIGEST_PERSONALIZAION)
 
     if len(tx.vSpendsSapling) + len(tx.vOutputsSapling) > 0:
         for desc in tx.vSpendsSapling:
@@ -74,7 +76,7 @@ def sapling_auth_digest(tx):
     return digest.digest()
 
 def sapling_auth_digest_v6(tx):
-    digest = blake2b(digest_size=32, person=b'ZTxAuthSapliHash')
+    digest = blake2b(digest_size=32, person=SAPLING_AUTH_DIGEST_PERSONALIZAION)
 
     if len(tx.vSpendsSapling) + len(tx.vOutputsSapling) > 0:
         for desc in tx.vSpendsSapling:

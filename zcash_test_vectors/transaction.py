@@ -481,6 +481,7 @@ class TransactionBase(object):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
 
+    # When `hasSighashInfo` is True, this function adds the SighashInfos in the transaction format. It is required from Transaction V6.
     def to_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId, hasSighashInfo = False):
         ret = b''
 
