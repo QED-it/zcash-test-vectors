@@ -120,6 +120,7 @@ def issuance_auth_digest(tx):
     if len(tx.vIssueActions) > 0:
         digest.update(write_compact_size(len(tx.issueAuthSigInfo)))
         digest.update(bytes(tx.issueAuthSigInfo))
+        digest.update(write_compact_size(len(tx.issueAuthSig)))
         digest.update(tx.issueAuthSig)
     return digest.digest()
 
