@@ -48,12 +48,12 @@ class AssetBurnDescription(object):
 
 
 class IssueActionDescription(object):
-    def __init__(self, rand, ik_encoding):
+    def __init__(self, rand):
         self.assetDescSize = rand.u32() % 512 + 1
         self.asset_desc_hash = asset_desc_digest(get_random_unicode_bytes(self.assetDescSize, rand))
         self.vNotes = []
         for _ in range(rand.u8() % 5):
-            self.vNotes.append(IssueNote(rand, ik_encoding, self.asset_desc_hash))
+            self.vNotes.append(IssueNoteDescription(rand))
         self.flagsIssuance = rand.u8() & 1  # Only one bit is reserved for the finalize flag currently
 
     def __bytes__(self):
@@ -69,15 +69,11 @@ class IssueActionDescription(object):
         return ret
 
 
-class IssueNote(object):
-    def __init__(self, rand, ik_encoding, asset_desc_hash):
+class IssueNoteDescription(object):
+    def __init__(self, rand):
         fvk_r = FullViewingKey.from_spending_key(SpendingKey(rand.b(32)))
         self.recipient = fvk_r.default_d() + bytes(fvk_r.default_pkd())
         self.value = rand.u64()
-        asset_digest_bytes = asset_digest(
-            encode_asset_id(ik_encoding, asset_desc_hash)
-        )
-        self.assetBase = zsa_value_base(asset_digest_bytes)
         self.rho = Point.rand(rand).extract()
         self.rseed = rand.b(32)
 
@@ -85,7 +81,6 @@ class IssueNote(object):
         ret = b''
         ret += bytes(self.recipient)
         ret += struct.pack('<Q', self.value)
-        ret += bytes(self.assetBase)
         ret += bytes(self.rho)
         ret += self.rseed
 
@@ -149,6 +144,9 @@ class TransactionV6(TransactionBase):
         # We cannot have burns without an OrchardZSA bundle.
         assert have_orchard_zsa or not have_burn
 
+        # We cannot have issuance without an OrchardZSA bundle.
+        assert have_orchard_zsa or not have_issuance #TODO: VA: Combine this with the above?
+
         # All Transparent, Sapling, and part of the Orchard Transaction Fields are initialized in the super class.
         super().__init__(rand, have_orchard_zsa)
         self.bindingSigOrchardInfo = sighash_info
@@ -166,11 +164,12 @@ class TransactionV6(TransactionBase):
 
         # OrchardZSA Issuance Fields
         self.vIssueActions = []
+        self.issuer = []
         if have_issuance:
             self.isk = rand.b(32)
             self.issuer = IssuanceKeys(self.isk).ik_encoding
-            for _ in range(rand.u8() % 5):
-                self.vIssueActions.append(IssueActionDescription(rand, self.issuer))
+            for _ in range(rand.u8() % 5 + 1):
+                self.vIssueActions.append(IssueActionDescription(rand))
 
             t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(self.vin))]
             sighash = signature_digest(self, t_inputs, SIGHASH_ALL, None)
@@ -180,18 +179,22 @@ class TransactionV6(TransactionBase):
                                     schnorr_sign(sighash, self.isk, b'\0' * 32)
                                 )
 
+        if len(self.vIssueActions) == 0:
+            assert len(self.issuer) == 0
+
     @staticmethod
     def version_bytes():
         return NU7_TX_VERSION_BYTES
 
     def issuance_field_bytes(self):
         ret = b''
+        ret += write_compact_size(len(self.issuer))
+        if len(self.issuer) > 0:
+            ret += self.issuer
         ret += write_compact_size(len(self.vIssueActions))
         if len(self.vIssueActions) > 0:
             for desc in self.vIssueActions:
                 ret += bytes(desc)
-            ret += write_compact_size(len(self.issuer))
-            ret += self.issuer
             ret += write_compact_size(len(self.issueAuthSigInfo))
             ret += bytes(self.issueAuthSigInfo)
             ret += write_compact_size(len(self.issueAuthSig))
