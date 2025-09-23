@@ -16,7 +16,7 @@ def orchard_zsa_digest(tx):
 
     if len(tx.vActionGroupsOrchard) > 0:
         digest.update(orchard_zsa_action_groups_digest(tx))
-        digest.update(struct.pack('<Q', tx.valueBalanceOrchard))
+        digest.update(struct.pack('<q', tx.valueBalanceOrchard))
 
     return digest.digest()
 

@@ -212,7 +212,7 @@ class TransactionV6(TransactionBase):
         if len(self.vActionGroupsOrchard) > 0:
             for ag in self.vActionGroupsOrchard:
                 ret += bytes(ag)
-            ret += struct.pack('<Q', self.valueBalanceOrchard)
+            ret += struct.pack('<q', self.valueBalanceOrchard)
             ret += write_compact_size(len(self.bindingSigOrchardInfo))
             ret += bytes(self.bindingSigOrchardInfo)
             ret += bytes(self.bindingSigOrchard)
