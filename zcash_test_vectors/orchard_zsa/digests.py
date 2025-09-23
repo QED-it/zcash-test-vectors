@@ -16,7 +16,7 @@ def orchard_zsa_digest(tx):
 
     if len(tx.vActionGroupsOrchard) > 0:
         digest.update(orchard_zsa_action_groups_digest(tx))
-        digest.update(struct.pack('<Q', tx.valueBalanceOrchard))
+        digest.update(struct.pack('<q', tx.valueBalanceOrchard))
 
     return digest.digest()
 
@@ -27,6 +27,7 @@ def orchard_zsa_action_groups_digest(tx):
     if len(tx.vActionGroupsOrchard) > 0:
         for ag in tx.vActionGroupsOrchard:
             digest.update(orchard_zsa_actions_compact_digest(ag))
+            # TODO remove memo digests once the new memo bundles are implemented (ZIP-231)
             digest.update(orchard_zsa_actions_memos_digest(ag))
             digest.update(orchard_zsa_actions_noncompact_digest(ag))
             digest.update(struct.pack('<B', ag.flagsOrchard))
@@ -64,7 +65,7 @@ def orchard_zsa_action_groups_auth_digest(tx):
 
 
 def orchard_zsa_actions_compact_digest(ag):
-    digest = blake2b(digest_size=32, person=b'ZTxIdOrcActCHash')
+    digest = blake2b(digest_size=32, person=b'ZTxId6OActC_Hash')
     for desc in ag.vActionsOrchard:
         digest.update(bytes(desc.nullifier))
         digest.update(bytes(desc.cmx))
@@ -83,10 +84,11 @@ def orchard_zsa_actions_memos_digest(ag):
 
 
 def orchard_zsa_actions_noncompact_digest(ag):
-    digest = blake2b(digest_size=32, person=b'ZTxIdOrcActNHash')
+    digest = blake2b(digest_size=32, person=b'ZTxId6OActN_Hash')
     for desc in ag.vActionsOrchard:
         digest.update(bytes(desc.cv))
         digest.update(bytes(desc.rk))
+        # TODO remove encCiphertext[596:] once the new memo bundles are implemented (ZIP-231)
         digest.update(desc.encCiphertext[596:])
         digest.update(desc.outCiphertext)
 
@@ -108,8 +110,9 @@ def issuance_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdSAIssueHash')
 
     if len(tx.vIssueActions) > 0:
-        digest.update(issue_actions_digest(tx))
+        digest.update(write_compact_size(len(tx.issuer)))
         digest.update(tx.issuer)
+        digest.update(issue_actions_digest(tx))
 
     return digest.digest()
 
@@ -119,6 +122,7 @@ def issuance_auth_digest(tx):
     if len(tx.vIssueActions) > 0:
         digest.update(write_compact_size(len(tx.issueAuthSigInfo)))
         digest.update(bytes(tx.issueAuthSigInfo))
+        digest.update(write_compact_size(len(tx.issueAuthSig)))
         digest.update(tx.issueAuthSig)
     return digest.digest()
 
@@ -127,8 +131,8 @@ def issue_actions_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdIssuActHash')
 
     for action in tx.vIssueActions:
-        digest.update(issue_notes_digest(action))
         digest.update(action.asset_desc_hash)
+        digest.update(issue_notes_digest(action))
         digest.update(struct.pack('<B', action.flagsIssuance))
 
     return digest.digest()
@@ -140,7 +144,6 @@ def issue_notes_digest(action):
     for note in action.vNotes:
         digest.update(bytes(note.recipient))
         digest.update(struct.pack('<Q', note.value))
-        digest.update(bytes(note.assetBase))
         digest.update(bytes(note.rho))
         digest.update(note.rseed)
 

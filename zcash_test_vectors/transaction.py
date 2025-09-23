@@ -563,7 +563,7 @@ class TransactionV5(TransactionBase):
             for desc in self.vActionsOrchard:
                 ret += bytes(desc) # Excludes spendAuthSig
             ret += struct.pack('B', self.flagsOrchard)
-            ret += struct.pack('<Q', self.valueBalanceOrchard)
+            ret += struct.pack('<q', self.valueBalanceOrchard)
             ret += bytes(self.anchorOrchard)
             ret += write_compact_size(len(self.proofsOrchard))
             ret += self.proofsOrchard

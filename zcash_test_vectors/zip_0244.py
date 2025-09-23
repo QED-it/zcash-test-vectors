@@ -140,7 +140,7 @@ def orchard_digest(tx):
         digest.update(orchard_actions_memos_digest(tx))
         digest.update(orchard_actions_noncompact_digest(tx))
         digest.update(struct.pack('<B', tx.flagsOrchard))
-        digest.update(struct.pack('<Q', tx.valueBalanceOrchard))
+        digest.update(struct.pack('<q', tx.valueBalanceOrchard))
         digest.update(bytes(tx.anchorOrchard))
 
     return digest.digest()
