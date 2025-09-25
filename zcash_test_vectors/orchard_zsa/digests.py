@@ -42,7 +42,8 @@ def orchard_zsa_auth_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxAuthOrchaHash')
 
     if len(tx.vActionGroupsOrchard) > 0:
-        digest.update(orchard_zsa_action_groups_auth_digest(tx))
+        for ag in tx.vActionGroupsOrchard:
+            digest.update(orchard_zsa_action_groups_auth_digest(ag))
         digest.update(write_compact_size(len(tx.bindingSigOrchardInfo)))
         digest.update(bytes(tx.bindingSigOrchardInfo))
         digest.update(bytes(tx.bindingSigOrchard))
@@ -50,16 +51,14 @@ def orchard_zsa_auth_digest(tx):
     return digest.digest()
 
 
-def orchard_zsa_action_groups_auth_digest(tx):
+def orchard_zsa_action_groups_auth_digest(ag):
     digest = blake2b(digest_size=32, person=b'ZTxAuthOrcAGHash')
 
-    if len(tx.vActionGroupsOrchard) > 0:
-        for ag in tx.vActionGroupsOrchard:
-            digest.update(ag.proofsOrchard)
-            for desc in ag.vActionsOrchard:
-                digest.update(write_compact_size(len(desc.spendAuthSigInfo)))
-                digest.update(bytes(desc.spendAuthSigInfo))
-                digest.update(bytes(desc.spendAuthSig))
+    digest.update(ag.proofsOrchard)
+    for desc in ag.vActionsOrchard:
+        digest.update(write_compact_size(len(desc.spendAuthSigInfo)))
+        digest.update(bytes(desc.spendAuthSigInfo))
+        digest.update(bytes(desc.spendAuthSig))
 
     return digest.digest()
 
