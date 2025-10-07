@@ -145,7 +145,7 @@ class TransactionV6(TransactionBase):
         assert have_orchard_zsa or not have_burn
 
         # We cannot have issuance without an OrchardZSA bundle.
-        assert have_orchard_zsa or not have_issuance #TODO: VA: Combine this with the above?
+        assert have_orchard_zsa or not have_issuance
 
         # All Transparent, Sapling, and part of the Orchard Transaction Fields are initialized in the super class.
         super().__init__(rand, have_orchard_zsa)
