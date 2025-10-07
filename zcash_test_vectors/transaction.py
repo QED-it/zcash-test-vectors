@@ -5,6 +5,7 @@ from .orchard.pallas import (
     Scalar as PallasScalar,
 )
 from .orchard.sinsemilla import group_hash as pallas_group_hash
+from .orchard_zsa.digests import NU7_TX_VERSION_BYTES
 from .sapling.generators import find_group_hash, SPENDING_KEY_BASE
 from .sapling.jubjub import (
     Fq,
@@ -481,8 +482,7 @@ class TransactionBase(object):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
 
-    # When `hasSighashInfo` is True, this function adds the SighashInfos in the transaction format. It is required from Transaction V6.
-    def to_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId, hasSighashInfo = False):
+    def to_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId):
         ret = b''
 
         # Common Transaction Fields
@@ -517,14 +517,14 @@ class TransactionBase(object):
             for desc in self.vSpendsSapling: # vSpendProofsSapling
                 ret += bytes(desc.proof)
             for desc in self.vSpendsSapling: # vSpendAuthSigsSapling
-                if hasSighashInfo:
+                if version_bytes == NU7_TX_VERSION_BYTES:
                     ret += write_compact_size(len(desc.spendAuthSigInfo))
                     ret += bytes(desc.spendAuthSigInfo)
                 ret += bytes(desc.spendAuthSig)
         for desc in self.vOutputsSapling: # vOutputProofsSapling
             ret += bytes(desc.proof)
         if hasSapling:
-            if hasSighashInfo:
+            if version_bytes == NU7_TX_VERSION_BYTES:
                 ret += write_compact_size(len(self.bindingSigSaplingInfo))
                 ret += bytes(self.bindingSigSaplingInfo)
             ret += bytes(self.bindingSigSapling)
