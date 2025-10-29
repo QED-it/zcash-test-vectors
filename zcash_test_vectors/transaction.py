@@ -499,6 +499,10 @@ class TransactionBase(object):
         ret += write_compact_size(len(self.vout))
         for x in self.vout:
             ret += bytes(x)
+        if version_bytes == NU7_TX_VERSION_BYTES:
+            for sighash_info in self.vSighashInfo:
+                ret += write_compact_size(len(sighash_info))
+                ret += bytes(sighash_info)
 
         # Sapling Transaction Fields
         hasSapling = len(self.vSpendsSapling) + len(self.vOutputsSapling) > 0
