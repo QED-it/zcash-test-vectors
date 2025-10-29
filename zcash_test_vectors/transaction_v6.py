@@ -167,7 +167,6 @@ class TransactionV6(TransactionBase):
             # For NU7 we have a maximum of one Action Group.
             self.vActionGroupsOrchard.append(ActionGroupDescription(rand, self.anchorOrchard, self.proofsOrchard, self.is_coinbase(), have_burn, sighash_info))
 
-
         # OrchardZSA Issuance Fields
         self.vIssueActions = []
         self.issuer = []
