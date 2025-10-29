@@ -5,6 +5,7 @@ from .orchard.pallas import (
     Scalar as PallasScalar,
 )
 from .orchard.sinsemilla import group_hash as pallas_group_hash
+from .orchard_zsa.digests import NU7_TX_VERSION_BYTES
 from .sapling.generators import find_group_hash, SPENDING_KEY_BASE
 from .sapling.jubjub import (
     Fq,
@@ -516,10 +517,16 @@ class TransactionBase(object):
             for desc in self.vSpendsSapling: # vSpendProofsSapling
                 ret += bytes(desc.proof)
             for desc in self.vSpendsSapling: # vSpendAuthSigsSapling
+                if version_bytes == NU7_TX_VERSION_BYTES:
+                    ret += write_compact_size(len(desc.spendAuthSigInfo))
+                    ret += bytes(desc.spendAuthSigInfo)
                 ret += bytes(desc.spendAuthSig)
         for desc in self.vOutputsSapling: # vOutputProofsSapling
             ret += bytes(desc.proof)
         if hasSapling:
+            if version_bytes == NU7_TX_VERSION_BYTES:
+                ret += write_compact_size(len(self.bindingSigSaplingInfo))
+                ret += bytes(self.bindingSigSaplingInfo)
             ret += bytes(self.bindingSigSapling)
 
         return ret

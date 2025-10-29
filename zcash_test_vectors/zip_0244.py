@@ -26,6 +26,8 @@ from .zip_0143 import (
     SIGHASH_SINGLE,
 )
 
+from .zc_utils import write_compact_size
+
 
 # Transparent
 
@@ -57,8 +59,10 @@ def sapling_digest(tx):
 
     return digest.digest()
 
+SAPLING_AUTH_DIGEST_PERSONALIZAION = b'ZTxAuthSapliHash'
+
 def sapling_auth_digest(tx):
-    digest = blake2b(digest_size=32, person=b'ZTxAuthSapliHash')
+    digest = blake2b(digest_size=32, person=SAPLING_AUTH_DIGEST_PERSONALIZAION)
 
     if len(tx.vSpendsSapling) + len(tx.vOutputsSapling) > 0:
         for desc in tx.vSpendsSapling:
@@ -67,6 +71,24 @@ def sapling_auth_digest(tx):
             digest.update(bytes(desc.spendAuthSig))
         for desc in tx.vOutputsSapling:
             digest.update(bytes(desc.proof))
+        digest.update(bytes(tx.bindingSigSapling))
+
+    return digest.digest()
+
+def sapling_auth_digest_v6(tx):
+    digest = blake2b(digest_size=32, person=SAPLING_AUTH_DIGEST_PERSONALIZAION)
+
+    if len(tx.vSpendsSapling) + len(tx.vOutputsSapling) > 0:
+        for desc in tx.vSpendsSapling:
+            digest.update(bytes(desc.proof))
+        for desc in tx.vSpendsSapling:
+            digest.update(write_compact_size(len(desc.spendAuthSigInfo)))
+            digest.update(bytes(desc.spendAuthSigInfo))
+            digest.update(bytes(desc.spendAuthSig))
+        for desc in tx.vOutputsSapling:
+            digest.update(bytes(desc.proof))
+        digest.update(write_compact_size(len(tx.bindingSigSaplingInfo)))
+        digest.update(bytes(tx.bindingSigSaplingInfo))
         digest.update(bytes(tx.bindingSigSapling))
 
     return digest.digest()
@@ -222,11 +244,12 @@ def auth_digest(tx):
     )
 
     digest.update(transparent_scripts_digest(tx))
-    digest.update(sapling_auth_digest(tx))
     if tx.version_bytes() == NU7_TX_VERSION_BYTES:
+        digest.update(sapling_auth_digest_v6(tx))
         digest.update(orchard_zsa_auth_digest(tx))
         digest.update(issuance_auth_digest(tx))
     else:
+        digest.update(sapling_auth_digest(tx))
         digest.update(orchard_auth_digest(tx))
 
     return digest.digest()
