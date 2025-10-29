@@ -151,9 +151,10 @@ class TransactionV6(TransactionBase):
         super().__init__(rand, have_orchard_zsa)
         for desc in self.vSpendsSapling:
             desc.spendAuthSigInfo = sighash_info
-        self.bindingSigSaplingInfo = sighash_info
-        self.bindingSigOrchardInfo = sighash_info
-
+        if hasattr(self, "bindingSigSapling"):
+            self.bindingSigSaplingInfo = sighash_info
+        if hasattr(self, "bindingSigOrchard"):
+            self.bindingSigOrchardInfo = sighash_info
 
         # Common Transaction Fields
         self.nVersionGroupId = NU7_VERSION_GROUP_ID
@@ -164,6 +165,7 @@ class TransactionV6(TransactionBase):
         if have_orchard_zsa:
             # For NU7 we have a maximum of one Action Group.
             self.vActionGroupsOrchard.append(ActionGroupDescription(rand, self.anchorOrchard, self.proofsOrchard, self.is_coinbase(), have_burn, sighash_info))
+
 
         # OrchardZSA Issuance Fields
         self.vIssueActions = []
