@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 import sys; assert sys.version_info[0] >= 3, "Python 3 required."
 
-from hashlib import blake2b
-import struct
-
 from .transaction import TransactionV6
-from .output import render_args, render_tv, Some
+from .output import render_args, render_tv
 from .rand import Rand
 from .zip_0143 import (
     SIGHASH_ALL,
@@ -21,12 +18,7 @@ def main():
 
     from random import Random
     rng = Random(0xB7D6_0F44)
-    def randbytes(l):
-        ret = []
-        while len(ret) < l:
-            ret.append(rng.randrange(0, 256))
-        return bytes(ret)
-    rand = Rand(randbytes)
+    rand = randbytes(rng)
 
     consensusBranchId = 0xFFFF_FFFF # ZFUTURE
 
@@ -53,29 +45,7 @@ def main():
         txid = txid_digest(tx)
         auth = auth_digest(tx)
 
-        # If there are any non-dummy transparent inputs, derive a corresponding transparent sighash.
-        if len(t_inputs) > 0:
-            txin = rand.a(t_inputs)
-        else:
-            txin = None
-
-        sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
-        other_sighashes = {
-            nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
-            for nHashType in ([
-                SIGHASH_ALL,
-                SIGHASH_NONE,
-                SIGHASH_SINGLE,
-                SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
-            ] if txin is None or txin.nIn < len(tx.vout) else [
-                SIGHASH_ALL,
-                SIGHASH_NONE,
-                SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-            ])
-        }
+        [sighash_shielded, other_sighashes, txin] = generate_sighashes_and_txin(tx, t_inputs, rand)
 
         test_vectors.append({
             'tx': bytes(tx),
