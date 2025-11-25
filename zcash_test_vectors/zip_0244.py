@@ -6,7 +6,6 @@ import struct
 
 from .transaction import (
     MAX_MONEY,
-    NU5_TX_VERSION,
     Script,
     TransactionV5,
 )
@@ -188,6 +187,8 @@ def header_digest(tx):
     digest.update(struct.pack('<I', tx.nConsensusBranchId))
     digest.update(struct.pack('<I', tx.nLockTime))
     digest.update(struct.pack('<I', tx.nExpiryHeight))
+    if hasattr(tx, 'zip233Amount'):
+        digest.update(struct.pack('<Q', tx.zip233Amount))
 
     return digest.digest()
 
@@ -221,10 +222,10 @@ def auth_digest(tx):
 # Signatures
 
 class TransparentInput(object):
-    def __init__(self, nIn, rand):
+    def __init__(self, nIn, rand, limit=MAX_MONEY):
         self.nIn = nIn
         self.scriptPubKey = Script(rand)
-        self.amount = rand.u64() % (MAX_MONEY + 1)
+        self.amount = rand.u64() % (limit + 1)
 
 def signature_digest(tx, t_inputs, nHashType, txin):
     digest = blake2b(
@@ -335,18 +336,47 @@ def txin_sig_digest(tx, txin):
         digest.update(struct.pack('<I', tx.vin[txin.nIn].nSequence))
     return digest.digest()
 
+def randbytes(rng):
+    def generate_randbytes(l):
+        ret = []
+        while len(ret) < l:
+            ret.append(rng.randrange(0, 256))
+        return bytes(ret)
+    rand = Rand(generate_randbytes)
+    return rand
+
+def generate_sighashes_and_txin(tx, t_inputs, rand):
+     # If there are any non-dummy transparent inputs, derive a corresponding transparent sighash.
+    if len(t_inputs) > 0:
+        txin = rand.a(t_inputs)
+    else:
+        txin = None
+
+    sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
+    other_sighashes = {
+        nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
+        for nHashType in ([
+            SIGHASH_ALL,
+            SIGHASH_NONE,
+            SIGHASH_SINGLE,
+            SIGHASH_ALL | SIGHASH_ANYONECANPAY,
+            SIGHASH_NONE | SIGHASH_ANYONECANPAY,
+            SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
+        ] if txin is None or txin.nIn < len(tx.vout) else [
+            SIGHASH_ALL,
+            SIGHASH_NONE,
+            SIGHASH_ALL | SIGHASH_ANYONECANPAY,
+            SIGHASH_NONE | SIGHASH_ANYONECANPAY,
+        ])
+    }
+    return [sighash_shielded, other_sighashes, txin]
 
 def main():
     args = render_args()
 
     from random import Random
     rng = Random(0xabad533d)
-    def randbytes(l):
-        ret = []
-        while len(ret) < l:
-            ret.append(rng.randrange(0, 256))
-        return bytes(ret)
-    rand = Rand(randbytes)
+    rand = randbytes(rng)
 
     consensusBranchId = 0xc2d6d0b4 # NU5
 
@@ -360,31 +390,10 @@ def main():
         if tx.is_coinbase():
             t_inputs = []
         else:
+            # We don't attempt to avoid generating amounts than sum to more than MAX_MONEY.
             t_inputs = [TransparentInput(nIn, rand) for nIn in range(len(tx.vin))]
 
-        # If there are any non-dummy transparent inputs, derive a corresponding transparent sighash.
-        if len(t_inputs) > 0:
-            txin = rand.a(t_inputs)
-        else:
-            txin = None
-
-        sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
-        other_sighashes = {
-            nHashType: None if txin is None else signature_digest(tx, t_inputs, nHashType, txin)
-            for nHashType in ([
-                SIGHASH_ALL,
-                SIGHASH_NONE,
-                SIGHASH_SINGLE,
-                SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-                SIGHASH_SINGLE | SIGHASH_ANYONECANPAY,
-            ] if txin is None or txin.nIn < len(tx.vout) else [
-                SIGHASH_ALL,
-                SIGHASH_NONE,
-                SIGHASH_ALL | SIGHASH_ANYONECANPAY,
-                SIGHASH_NONE | SIGHASH_ANYONECANPAY,
-            ])
-        }
+        [sighash_shielded, other_sighashes, txin] = generate_sighashes_and_txin(tx, t_inputs, rand)
 
         test_vectors.append({
             'tx': bytes(tx),
