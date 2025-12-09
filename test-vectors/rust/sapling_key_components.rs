@@ -1,22 +1,23 @@
-struct TestVector {
-    sk: [u8; 32],
-    ask: [u8; 32],
-    nsk: [u8; 32],
-    ovk: [u8; 32],
-    ak: [u8; 32],
-    nk: [u8; 32],
-    ivk: [u8; 32],
-    default_d: [u8; 11],
-    default_pk_d: [u8; 32],
-    note_v: u64,
-    note_r: [u8; 32],
-    note_cmu: [u8; 32],
-    note_pos: u64,
-    note_nf: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/sapling_key_components.py
+
+pub(crate) struct TestVector {
+    pub(crate) sk: [u8; 32],
+    pub(crate) ask: [u8; 32],
+    pub(crate) nsk: [u8; 32],
+    pub(crate) ovk: [u8; 32],
+    pub(crate) ak: [u8; 32],
+    pub(crate) nk: [u8; 32],
+    pub(crate) ivk: [u8; 32],
+    pub(crate) default_d: [u8; 11],
+    pub(crate) default_pk_d: [u8; 32],
+    pub(crate) note_v: u64,
+    pub(crate) note_r: [u8; 32],
+    pub(crate) note_cmu: [u8; 32],
+    pub(crate) note_pos: u64,
+    pub(crate) note_nf: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/sapling_key_components.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         sk: [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

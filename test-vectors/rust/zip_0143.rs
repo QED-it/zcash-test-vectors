@@ -1,15 +1,16 @@
-struct TestVector {
-    tx: Vec<u8>,
-    script_code: Vec<u8>,
-    transparent_input: Option<u32>,
-    hash_type: u32,
-    amount: i64,
-    consensus_branch_id: u32,
-    sighash: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/zip_0143.py
+
+pub(crate) struct TestVector {
+    pub(crate) tx: Vec<u8>,
+    pub(crate) script_code: Vec<u8>,
+    pub(crate) transparent_input: Option<u32>,
+    pub(crate) hash_type: u32,
+    pub(crate) amount: i64,
+    pub(crate) consensus_branch_id: u32,
+    pub(crate) sighash: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/zip_0143.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         tx: vec![
             0x03, 0x00, 0x00, 0x80, 0x70, 0x82, 0xc4, 0x03, 0x00, 0x02, 0xe7, 0x71, 0x98, 0x11,

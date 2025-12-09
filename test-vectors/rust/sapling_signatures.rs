@@ -1,16 +1,17 @@
-struct TestVector {
-    sk: [u8; 32],
-    vk: [u8; 32],
-    alpha: [u8; 32],
-    rsk: [u8; 32],
-    rvk: [u8; 32],
-    m: [u8; 32],
-    sig: [u8; 64],
-    rsig: [u8; 64],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/sapling_signatures.py
+
+pub(crate) struct TestVector {
+    pub(crate) sk: [u8; 32],
+    pub(crate) vk: [u8; 32],
+    pub(crate) alpha: [u8; 32],
+    pub(crate) rsk: [u8; 32],
+    pub(crate) rvk: [u8; 32],
+    pub(crate) m: [u8; 32],
+    pub(crate) sig: [u8; 64],
+    pub(crate) rsig: [u8; 64],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/sapling_signatures.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         sk: [
             0x18, 0xe2, 0x8d, 0xea, 0x5c, 0x11, 0x81, 0x7a, 0xee, 0xb2, 0x1a, 0x19, 0x98, 0x1d,

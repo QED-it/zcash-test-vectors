@@ -1,9 +1,10 @@
-struct TestVector {
-    empty_roots: [[u8; 32]; 33],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_empty_roots.py
+
+pub(crate) struct TestVector {
+    pub(crate) empty_roots: [[u8; 32]; 33],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_empty_roots.py
-const TEST_VECTOR: TestVector = TestVector {
+pub(crate) const TEST_VECTOR: TestVector = TestVector {
     empty_roots: [
         [
             0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

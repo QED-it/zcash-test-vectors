@@ -1,10 +1,11 @@
-struct TestVector {
-    u: [u8; 32],
-    point: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_map_to_curve.py
+
+pub(crate) struct TestVector {
+    pub(crate) u: [u8; 32],
+    pub(crate) point: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_map_to_curve.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         u: [
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,

@@ -1,10 +1,11 @@
-struct TestVector {
-    initial_state: [[u8; 32]; 3],
-    final_state: [[u8; 32]; 3],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_poseidon.py
+
+pub(crate) struct TestVector {
+    pub(crate) initial_state: [[u8; 32]; 3],
+    pub(crate) final_state: [[u8; 32]; 3],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_poseidon.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         initial_state: [
             [
