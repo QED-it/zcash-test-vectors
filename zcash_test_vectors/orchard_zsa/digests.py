@@ -27,7 +27,7 @@ def orchard_zsa_action_groups_digest(tx):
     if len(tx.vActionGroupsOrchard) > 0:
         for ag in tx.vActionGroupsOrchard:
             digest.update(orchard_zsa_actions_compact_digest(ag))
-            # TODO remove memo digests once the new memo bundles are implemented (ZIP-231)
+            # TODO: remove memo digests once the new memo bundles are implemented (ZIP-231)
             digest.update(orchard_zsa_actions_memos_digest(ag))
             digest.update(orchard_zsa_actions_noncompact_digest(ag))
             digest.update(struct.pack('<B', ag.flagsOrchard))
@@ -94,7 +94,7 @@ def orchard_zsa_actions_noncompact_digest(ag):
     for desc in ag.vActionsOrchard:
         digest.update(bytes(desc.cv))
         digest.update(bytes(desc.rk))
-        # TODO remove encCiphertext[596:] once the new memo bundles are implemented (ZIP-231)
+        # TODO: remove encCiphertext[596:] once the new memo bundles are implemented (ZIP-231)
         digest.update(desc.encCiphertext[596:])
         digest.update(desc.outCiphertext)
 
