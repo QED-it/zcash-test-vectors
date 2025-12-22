@@ -1,21 +1,22 @@
-struct TestVector {
-    tx: Vec<u8>,
-    txid: [u8; 32],
-    auth_digest: [u8; 32],
-    amounts: Vec<i64>,
-    script_pubkeys: Vec<Vec<u8>>,
-    transparent_input: Option<u32>,
-    sighash_shielded: [u8; 32],
-    sighash_all: Option<[u8; 32]>,
-    sighash_none: Option<[u8; 32]>,
-    sighash_single: Option<[u8; 32]>,
-    sighash_all_anyone: Option<[u8; 32]>,
-    sighash_none_anyone: Option<[u8; 32]>,
-    sighash_single_anyone: Option<[u8; 32]>,
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/zip_0244.py
+
+pub(crate) struct TestVector {
+    pub(crate) tx: Vec<u8>,
+    pub(crate) txid: [u8; 32],
+    pub(crate) auth_digest: [u8; 32],
+    pub(crate) amounts: Vec<i64>,
+    pub(crate) script_pubkeys: Vec<Vec<u8>>,
+    pub(crate) transparent_input: Option<u32>,
+    pub(crate) sighash_shielded: [u8; 32],
+    pub(crate) sighash_all: Option<[u8; 32]>,
+    pub(crate) sighash_none: Option<[u8; 32]>,
+    pub(crate) sighash_single: Option<[u8; 32]>,
+    pub(crate) sighash_all_anyone: Option<[u8; 32]>,
+    pub(crate) sighash_none_anyone: Option<[u8; 32]>,
+    pub(crate) sighash_single_anyone: Option<[u8; 32]>,
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/zip_0244.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         tx: vec![
             0x05, 0x00, 0x00, 0x80, 0x0a, 0x27, 0xa7, 0x26, 0xb4, 0xd0, 0xd6, 0xc2, 0x7a, 0x8f,

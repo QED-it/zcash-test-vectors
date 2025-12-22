@@ -1,10 +1,11 @@
-struct TestVector {
-    normal: Vec<u8>,
-    jumbled: Vec<u8>,
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/f4jumble.py
+
+pub(crate) struct TestVector {
+    pub(crate) normal: Vec<u8>,
+    pub(crate) jumbled: Vec<u8>,
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/f4jumble.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         normal: vec![
             0x5d, 0x7a, 0x8f, 0x73, 0x9a, 0x2d, 0x9e, 0x94, 0x5b, 0x0c, 0xe1, 0x52, 0xa8, 0x04,

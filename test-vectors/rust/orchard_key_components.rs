@@ -1,27 +1,28 @@
-struct TestVector {
-    sk: [u8; 32],
-    ask: [u8; 32],
-    ak: [u8; 32],
-    nk: [u8; 32],
-    rivk: [u8; 32],
-    ivk: [u8; 32],
-    ovk: [u8; 32],
-    dk: [u8; 32],
-    default_d: [u8; 11],
-    default_pk_d: [u8; 32],
-    internal_rivk: [u8; 32],
-    internal_ivk: [u8; 32],
-    internal_ovk: [u8; 32],
-    internal_dk: [u8; 32],
-    note_v: u64,
-    note_rho: [u8; 32],
-    note_rseed: [u8; 32],
-    note_cmx: [u8; 32],
-    note_nf: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_key_components.py
+
+pub(crate) struct TestVector {
+    pub(crate) sk: [u8; 32],
+    pub(crate) ask: [u8; 32],
+    pub(crate) ak: [u8; 32],
+    pub(crate) nk: [u8; 32],
+    pub(crate) rivk: [u8; 32],
+    pub(crate) ivk: [u8; 32],
+    pub(crate) ovk: [u8; 32],
+    pub(crate) dk: [u8; 32],
+    pub(crate) default_d: [u8; 11],
+    pub(crate) default_pk_d: [u8; 32],
+    pub(crate) internal_rivk: [u8; 32],
+    pub(crate) internal_ivk: [u8; 32],
+    pub(crate) internal_ovk: [u8; 32],
+    pub(crate) internal_dk: [u8; 32],
+    pub(crate) note_v: u64,
+    pub(crate) note_rho: [u8; 32],
+    pub(crate) note_rseed: [u8; 32],
+    pub(crate) note_cmx: [u8; 32],
+    pub(crate) note_nf: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_key_components.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         sk: [
             0x5d, 0x7a, 0x8f, 0x73, 0x9a, 0x2d, 0x9e, 0x94, 0x5b, 0x0c, 0xe1, 0x52, 0xa8, 0x04,

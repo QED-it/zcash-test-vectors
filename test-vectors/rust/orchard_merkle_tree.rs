@@ -1,11 +1,12 @@
-struct TestVector {
-    leaves: [[u8; 32]; 16],
-    paths: [[[u8; 32]; 4]; 16],
-    root: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_merkle_tree.py
+
+pub(crate) struct TestVector {
+    pub(crate) leaves: [[u8; 32]; 16],
+    pub(crate) paths: [[[u8; 32]; 4]; 16],
+    pub(crate) root: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_merkle_tree.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         leaves: [
             [

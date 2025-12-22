@@ -1,10 +1,11 @@
-struct TestVector {
-    input: [[u8; 32]; 2],
-    output: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_poseidon_hash.py
+
+pub(crate) struct TestVector {
+    pub(crate) input: [[u8; 32]; 2],
+    pub(crate) output: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_poseidon_hash.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         input: [
             [
