@@ -1,12 +1,13 @@
-struct TestVector {
-    c: [u8; 32],
-    pk: [u8; 33],
-    external_ovk: [u8; 32],
-    internal_ovk: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/zip_0316.py
+
+pub(crate) struct TestVector {
+    pub(crate) c: [u8; 32],
+    pub(crate) pk: [u8; 33],
+    pub(crate) external_ovk: [u8; 32],
+    pub(crate) internal_ovk: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/zip_0316.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         c: [
             0x5d, 0x7a, 0x8f, 0x73, 0x9a, 0x2d, 0x9e, 0x94, 0x5b, 0x0c, 0xe1, 0x52, 0xa8, 0x04,

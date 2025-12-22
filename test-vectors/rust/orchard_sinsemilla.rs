@@ -1,12 +1,13 @@
-struct TestVector {
-    domain: Vec<u8>,
-    msg: Vec<bool>,
-    point: [u8; 32],
-    hash: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_sinsemilla.py
+
+pub(crate) struct TestVector {
+    pub(crate) domain: Vec<u8>,
+    pub(crate) msg: Vec<bool>,
+    pub(crate) point: [u8; 32],
+    pub(crate) hash: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/orchard_sinsemilla.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         domain: vec![
             0x7a, 0x2e, 0x63, 0x61, 0x73, 0x68, 0x3a, 0x74, 0x65, 0x73, 0x74, 0x2d, 0x53, 0x69,

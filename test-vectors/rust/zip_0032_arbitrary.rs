@@ -1,15 +1,16 @@
-struct TestVector {
-    context_string: &'static [u8],
-    seed: [u8; 32],
-    seedfp: &'static str,
-    ikm: Option<&'static [u8]>,
-    path: &'static [u32],
-    sk: [u8; 32],
-    c: [u8; 32],
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/zip_0032_arbitrary.py
+
+pub(crate) struct TestVector {
+    pub(crate) context_string: &'static [u8],
+    pub(crate) seed: [u8; 32],
+    pub(crate) seedfp: &'static str,
+    pub(crate) ikm: Option<&'static [u8]>,
+    pub(crate) path: &'static [u32],
+    pub(crate) sk: [u8; 32],
+    pub(crate) c: [u8; 32],
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/zip_0032_arbitrary.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         context_string: &[
             0x5a, 0x63, 0x61, 0x73, 0x68, 0x20, 0x74, 0x65, 0x73, 0x74, 0x20, 0x76, 0x65, 0x63,

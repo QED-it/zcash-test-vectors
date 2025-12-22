@@ -1,16 +1,17 @@
-struct TestVector {
-    t_key_bytes: Option<[u8; 65]>,
-    sapling_ivk_bytes: Option<[u8; 64]>,
-    orchard_ivk_bytes: Option<[u8; 64]>,
-    unknown_ivk_typecode: u32,
-    unknown_ivk_bytes: Option<Vec<u8>>,
-    unified_ivk: Vec<u8>,
-    root_seed: Vec<u8>,
-    account: u32,
+// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/unified_incoming_viewing_keys.py
+
+pub(crate) struct TestVector {
+    pub(crate) t_key_bytes: Option<[u8; 65]>,
+    pub(crate) sapling_ivk_bytes: Option<[u8; 64]>,
+    pub(crate) orchard_ivk_bytes: Option<[u8; 64]>,
+    pub(crate) unknown_ivk_typecode: u32,
+    pub(crate) unknown_ivk_bytes: Option<Vec<u8>>,
+    pub(crate) unified_ivk: Vec<u8>,
+    pub(crate) root_seed: Vec<u8>,
+    pub(crate) account: u32,
 }
 
-// From https://github.com/zcash-hackworks/zcash-test-vectors/blob/master/unified_incoming_viewing_keys.py
-const TEST_VECTORS: &[TestVector] = &[
+pub(crate) const TEST_VECTORS: &[TestVector] = &[
     TestVector {
         t_key_bytes: Some([
             0x42, 0xd6, 0x7b, 0x57, 0x0a, 0x66, 0x4b, 0x8d, 0xc3, 0xce, 0xbb, 0x8f, 0x0a, 0xf4,
