@@ -427,10 +427,19 @@ class TransactionBase(object):
         have_sapling = (flip_coins >> 2) % 2
         is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
 
+        self.init_header_base(rand)
+        self.init_transparent(rand, have_transparent_in, have_transparent_out, is_coinbase)
+        self.init_sapling(rand, have_sapling, is_coinbase)
+        self.init_orchard_base(rand, have_orchard)
+
+        assert is_coinbase == self.is_coinbase()
+
+    def init_header_base(self, rand):
         # Common Transaction Fields
         self.nLockTime = rand.u32()
         self.nExpiryHeight = rand.u32() % TX_EXPIRY_HEIGHT_THRESHOLD
 
+    def init_transparent(self, rand, have_transparent_in, have_transparent_out, is_coinbase):
         # Transparent Transaction Fields
         self.vin = []
         self.vout = []
@@ -446,6 +455,7 @@ class TransactionBase(object):
             for _ in range((rand.u8() % 3) + 1):
                 self.vout.append(TxOut(rand))
 
+    def init_sapling(self, rand, have_sapling, is_coinbase):
         # Sapling Transaction Fields
         self.vSpendsSapling = []
         self.vOutputsSapling = []
@@ -465,6 +475,7 @@ class TransactionBase(object):
             # v^balanceSapling is defined to be 0.
             self.valueBalanceSapling = 0
 
+    def init_orchard_base(self, rand, have_orchard):
         # Orchard Transaction Fields that are present in both V5 and V6
         if have_orchard:
             self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
@@ -475,8 +486,6 @@ class TransactionBase(object):
             # If valueBalanceOrchard is not present in the serialized transaction, then
             # v^balanceOrchard is defined to be 0.
             self.valueBalanceOrchard = 0
-
-        assert is_coinbase == self.is_coinbase()
 
     def is_coinbase(self):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
