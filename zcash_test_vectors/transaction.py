@@ -491,19 +491,19 @@ class TransactionBase(object):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
 
-    def to_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId):
+    def to_bytes(self, version_bytes, version_group_id, consensus_branch_id):
         ret = b''
-        ret += self.header_bytes(version_bytes, nVersionGroupId, nConsensusBranchId)
+        ret += self.header_bytes(version_bytes, version_group_id, consensus_branch_id)
         ret += self.transparent_bytes(version_bytes)
         ret += self.sapling_bytes(version_bytes)
         return ret
 
-    def header_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId):
+    def header_bytes(self, version_bytes, version_group_id, consensus_branch_id):
         ret = b''
         # Common Transaction Fields
         ret += struct.pack('<I', version_bytes)
-        ret += struct.pack('<I', nVersionGroupId)
-        ret += struct.pack('<I', nConsensusBranchId)
+        ret += struct.pack('<I', version_group_id)
+        ret += struct.pack('<I', consensus_branch_id)
         ret += struct.pack('<I', self.nLockTime)
         ret += struct.pack('<I', self.nExpiryHeight)
 
@@ -528,14 +528,14 @@ class TransactionBase(object):
     def sapling_bytes(self, version_bytes):
         ret = b''
         # Sapling Transaction Fields
-        hasSapling = len(self.vSpendsSapling) + len(self.vOutputsSapling) > 0
+        has_sapling = len(self.vSpendsSapling) + len(self.vOutputsSapling) > 0
         ret += write_compact_size(len(self.vSpendsSapling))
         for desc in self.vSpendsSapling:
             ret += desc.bytes_v5()
         ret += write_compact_size(len(self.vOutputsSapling))
         for desc in self.vOutputsSapling:
             ret += desc.bytes_v5()
-        if hasSapling:
+        if has_sapling:
             ret += struct.pack('<Q', self.valueBalanceSapling)
         if len(self.vSpendsSapling) > 0:
             ret += bytes(self.anchorSapling)
@@ -550,7 +550,7 @@ class TransactionBase(object):
                 ret += bytes(desc.spendAuthSig)
         for desc in self.vOutputsSapling: # vOutputProofsSapling
             ret += bytes(desc.proof)
-        if hasSapling:
+        if has_sapling:
             if version_bytes == NU7_TX_VERSION_BYTES:
                 ret += write_compact_size(len(self.bindingSigSaplingInfo))
                 ret += bytes(self.bindingSigSaplingInfo)
