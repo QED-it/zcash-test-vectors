@@ -493,7 +493,13 @@ class TransactionBase(object):
 
     def to_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId):
         ret = b''
+        ret += self.header_bytes(version_bytes, nVersionGroupId, nConsensusBranchId)
+        ret += self.transparent_bytes(version_bytes)
+        ret += self.sapling_bytes(version_bytes)
+        return ret
 
+    def header_bytes(self, version_bytes, nVersionGroupId, nConsensusBranchId):
+        ret = b''
         # Common Transaction Fields
         ret += struct.pack('<I', version_bytes)
         ret += struct.pack('<I', nVersionGroupId)
@@ -501,6 +507,10 @@ class TransactionBase(object):
         ret += struct.pack('<I', self.nLockTime)
         ret += struct.pack('<I', self.nExpiryHeight)
 
+        return ret
+
+    def transparent_bytes(self, version_bytes):
+        ret = b''
         # Transparent Transaction Fields
         ret += write_compact_size(len(self.vin))
         for x in self.vin:
@@ -513,6 +523,10 @@ class TransactionBase(object):
                 ret += write_compact_size(len(sighash_info))
                 ret += bytes(sighash_info)
 
+        return ret
+
+    def sapling_bytes(self, version_bytes):
+        ret = b''
         # Sapling Transaction Fields
         hasSapling = len(self.vSpendsSapling) + len(self.vOutputsSapling) > 0
         ret += write_compact_size(len(self.vSpendsSapling))
