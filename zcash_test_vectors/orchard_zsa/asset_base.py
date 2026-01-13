@@ -47,6 +47,7 @@ def get_random_unicode_bytes(length, rand):
 
     random.seed(rand.u8())
 
+    # We include ALL valid Unicode code points for sampling.
     include_ranges = [
         (0x0000, 0xD7FF),
         (0xE000, 0xFDCF),
