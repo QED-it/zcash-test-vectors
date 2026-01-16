@@ -508,7 +508,7 @@ class TransactionBase(object):
     def to_bytes(self, version_bytes, version_group_id, consensus_branch_id):
         ret = b''
         ret += self.header_bytes(version_bytes, version_group_id, consensus_branch_id)
-        ret += self.transparent_bytes(version_bytes)
+        ret += self.transparent_bytes()
         ret += self.sapling_bytes(version_bytes)
         return ret
 
@@ -523,7 +523,7 @@ class TransactionBase(object):
 
         return ret
 
-    def transparent_bytes(self, version_bytes):
+    def transparent_bytes(self):
         ret = b''
         # Transparent Transaction Fields
         ret += write_compact_size(len(self.vin))
@@ -532,12 +532,12 @@ class TransactionBase(object):
         ret += write_compact_size(len(self.vout))
         for x in self.vout:
             ret += bytes(x)
-        if version_bytes == NU7_TX_VERSION_BYTES:
-            for sighash_info in self.vSighashInfo:
-                ret += write_compact_size(len(sighash_info))
-                ret += bytes(sighash_info)
-
+        ret += self.transparent_sighash_info_bytes()
         return ret
+
+    def transparent_sighash_info_bytes(self):
+        # There are no such bytes for V5 transactions.
+        return b''
 
     def sapling_bytes(self, version_bytes):
         ret = b''
