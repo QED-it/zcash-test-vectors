@@ -5,7 +5,6 @@ from .orchard.pallas import (
     Scalar as PallasScalar,
 )
 from .orchard.sinsemilla import group_hash as pallas_group_hash
-from .orchard_zsa.digests import NU7_TX_VERSION_BYTES
 from .sapling.generators import find_group_hash, SPENDING_KEY_BASE
 from .sapling.jubjub import (
     Fq,
@@ -509,7 +508,7 @@ class TransactionBase(object):
         ret = b''
         ret += self.header_bytes(version_bytes, version_group_id, consensus_branch_id)
         ret += self.transparent_bytes()
-        ret += self.sapling_bytes(version_bytes)
+        ret += self.sapling_bytes()
         return ret
 
     def header_bytes(self, version_bytes, version_group_id, consensus_branch_id):
@@ -539,7 +538,7 @@ class TransactionBase(object):
         # There are no such bytes for V5 transactions.
         return b''
 
-    def sapling_bytes(self, version_bytes):
+    def sapling_bytes(self):
         ret = b''
         # Sapling Transaction Fields
         has_sapling = len(self.vSpendsSapling) + len(self.vOutputsSapling) > 0
@@ -558,19 +557,19 @@ class TransactionBase(object):
             for desc in self.vSpendsSapling: # vSpendProofsSapling
                 ret += bytes(desc.proof)
             for desc in self.vSpendsSapling: # vSpendAuthSigsSapling
-                if version_bytes == NU7_TX_VERSION_BYTES:
-                    ret += write_compact_size(len(desc.spendAuthSigInfo))
-                    ret += bytes(desc.spendAuthSigInfo)
-                ret += bytes(desc.spendAuthSig)
+                ret += self.sapling_spend_auth_sig_bytes(desc)
         for desc in self.vOutputsSapling: # vOutputProofsSapling
             ret += bytes(desc.proof)
         if has_sapling:
-            if version_bytes == NU7_TX_VERSION_BYTES:
-                ret += write_compact_size(len(self.bindingSigSaplingInfo))
-                ret += bytes(self.bindingSigSaplingInfo)
-            ret += bytes(self.bindingSigSapling)
+            ret += self.sapling_binding_sig_bytes()
 
         return ret
+
+    def sapling_spend_auth_sig_bytes(self, desc):
+        return bytes(desc.spendAuthSig)
+
+    def sapling_binding_sig_bytes(self):
+        return bytes(self.bindingSigSapling)
 
 class TransactionV5(TransactionBase):
     def __init__(self, rand, consensus_branch_id):
