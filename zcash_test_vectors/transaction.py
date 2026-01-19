@@ -534,9 +534,9 @@ class TransactionBase(object):
         ret += self.transparent_sighash_info_bytes()
         return ret
 
+    # This must be defined in every child class.
     def transparent_sighash_info_bytes(self):
-        # There are no such bytes for V5 transactions.
-        return b''
+        raise NotImplementedError("The transparent_sighash_info_bytes method must be implemented.")
 
     def sapling_bytes(self):
         ret = b''
@@ -565,11 +565,13 @@ class TransactionBase(object):
 
         return ret
 
+    # This must be defined in every child class.
     def sapling_spend_auth_sig_bytes(self, desc):
-        return bytes(desc.spendAuthSig)
+        raise NotImplementedError("The sapling_spend_auth_sig_bytes method must be implemented.")
 
+    # This must be defined in every child class.
     def sapling_binding_sig_bytes(self):
-        return bytes(self.bindingSigSapling)
+        raise NotImplementedError("The sapling_binding_sig_bytes method must be implemented.")
 
 class TransactionV5(TransactionBase):
     def __init__(self, rand, consensus_branch_id):
@@ -595,6 +597,16 @@ class TransactionV5(TransactionBase):
     @staticmethod
     def version_bytes():
         return NU5_TX_VERSION_BYTES
+
+    def transparent_sighash_info_bytes(self):
+        # There are no such bytes for V5 transactions.
+        return b''
+
+    def sapling_spend_auth_sig_bytes(self, desc):
+        return bytes(desc.spendAuthSig)
+
+    def sapling_binding_sig_bytes(self):
+        return bytes(self.bindingSigSapling)
 
     def __bytes__(self):
         ret = b''
