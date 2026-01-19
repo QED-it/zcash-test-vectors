@@ -534,7 +534,6 @@ class TransactionBase(object):
         ret += self.transparent_sighash_info_bytes()
         return ret
 
-    # This must be defined in every child class.
     def transparent_sighash_info_bytes(self):
         raise NotImplementedError("The transparent_sighash_info_bytes method must be implemented.")
 
@@ -565,11 +564,9 @@ class TransactionBase(object):
 
         return ret
 
-    # This must be defined in every child class.
     def sapling_spend_auth_sig_bytes(self, desc):
         raise NotImplementedError("The sapling_spend_auth_sig_bytes method must be implemented.")
 
-    # This must be defined in every child class.
     def sapling_binding_sig_bytes(self):
         raise NotImplementedError("The sapling_binding_sig_bytes method must be implemented.")
 
