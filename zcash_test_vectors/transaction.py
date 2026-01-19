@@ -535,7 +535,7 @@ class TransactionBase(object):
         return ret
 
     def transparent_sighash_info_bytes(self):
-        raise NotImplementedError("The transparent_sighash_info_bytes method must be implemented.")
+        raise NotImplementedError("The transparent_sighash_info_bytes method must be implemented in the child class.")
 
     def sapling_bytes(self):
         ret = b''
@@ -565,10 +565,10 @@ class TransactionBase(object):
         return ret
 
     def sapling_spend_auth_sig_bytes(self, desc):
-        raise NotImplementedError("The sapling_spend_auth_sig_bytes method must be implemented.")
+        raise NotImplementedError("The sapling_spend_auth_sig_bytes method must be implemented in the child class.")
 
     def sapling_binding_sig_bytes(self):
-        raise NotImplementedError("The sapling_binding_sig_bytes method must be implemented.")
+        raise NotImplementedError("The sapling_binding_sig_bytes method must be implemented in the child class.")
 
 class TransactionV5(TransactionBase):
     def __init__(self, rand, consensus_branch_id):
