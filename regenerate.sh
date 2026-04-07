@@ -1,4 +1,10 @@
 #!/usr/bin/env bash
+set -euo pipefail
+
+if [ $# -lt 2 ]; then
+  echo "Usage: $0 <rust|json|zcash|all> <all|generator_name>"
+  exit 1
+fi
 
 case "$1" in
   "rust" )
@@ -82,7 +88,11 @@ do
   for generator in "${tv_scripts[@]}"
   do
       echo "# $generator"
-      poetry run $generator -t $gen_type >test-vectors/$gen_type/$generator.$extension
+      if [ "$gen_type" = "rust" ]; then
+          uv run $generator -t $gen_type | rustfmt >test-vectors/$gen_type/$generator.$extension
+      else
+          uv run $generator -t $gen_type >test-vectors/$gen_type/$generator.$extension
+      fi
   done
   echo "Finished $gen_type."
 done
