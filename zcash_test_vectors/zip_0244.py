@@ -465,13 +465,13 @@ def generate_test_vectors(filename, test_vectors):
     args = render_args()
     render_tv(
         args,
-        filename,
+        'zcash_test_vectors/zip_0244',
         (
-            ('tx',                    {'rust_type': 'Vec<u8>', 'bitcoin_flavoured': False}),
+            ('tx',                    {'rust_type': '&\'static [u8]', 'bitcoin_flavoured': False}),
             ('txid',                  '[u8; 32]'),
             ('auth_digest',           '[u8; 32]'),
-            ('amounts',               'Vec<i64>'),
-            ('script_pubkeys',        {'rust_type': 'Vec<Vec<u8>>', 'bitcoin_flavoured': False}),
+            ('amounts',               '&\'static [i64]'),
+            ('script_pubkeys',        {'rust_type': '&\'static [&\'static [u8]]', 'bitcoin_flavoured': False}),
             ('transparent_input',     'Option<u32>'),
             ('sighash_shielded',      '[u8; 32]'),
             ('sighash_all',           'Option<[u8; 32]>'),

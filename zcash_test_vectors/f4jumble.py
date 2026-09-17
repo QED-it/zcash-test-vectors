@@ -115,10 +115,10 @@ def main():
 
     render_tv(
         args,
-        'f4jumble',
+        'zcash_test_vectors/f4jumble',
         (
-            ('normal', 'Vec<u8>'),
-            ('jumbled', 'Vec<u8>'),
+            ('normal', '&\'static [u8]'),
+            ('jumbled', '&\'static [u8]'),
         ),
         plain_test_vectors,
     )
@@ -144,7 +144,7 @@ def long_test_vectors():
 
     render_tv(
         args,
-        'f4jumble_long',
+        'zcash_test_vectors/f4jumble',
         (
             ('length', 'usize'),
             ('jumbled_hash', '[u8; 64]'),

@@ -57,7 +57,7 @@ def main():
 
     render_tv(
         args,
-        'orchard_zsa_issuance_auth_sig',
+        'zcash_test_vectors/orchard_zsa/issuance_auth_sig',
         (
             ('isk', '[u8; 32]'),
             ('ik_encoding', '[u8; 33]'),

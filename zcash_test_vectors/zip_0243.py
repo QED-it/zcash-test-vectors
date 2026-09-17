@@ -156,10 +156,10 @@ def main():
 
     render_tv(
         args,
-        'zip_0243',
+        'zcash_test_vectors/zip_0243',
         (
-            ('tx', {'rust_type': 'Vec<u8>', 'bitcoin_flavoured': False}),
-            ('script_code', 'Vec<u8>'),
+            ('tx', {'rust_type': '&\'static [u8]', 'bitcoin_flavoured': False}),
+            ('script_code', '&\'static [u8]'),
             ('transparent_input', {
                 'rust_type': 'Option<u32>',
                 'rust_fmt': lambda x: None if x == -1 else Some(x),

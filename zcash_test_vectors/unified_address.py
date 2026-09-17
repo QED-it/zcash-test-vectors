@@ -105,7 +105,7 @@ def main():
             assert decoded.get('sapling') == sapling_raw_addr
             assert decoded.get('transparent') == t_addr
             if has_unknown_item:
-                assert decoded.get('unknown') == (unknown_tc, unknown_bytes)
+                assert decoded.get('unknown') == [(unknown_tc, unknown_bytes)]
             else:
                 assert decoded.get('unknown') == None
 
@@ -152,16 +152,16 @@ def main():
 
     render_tv(
         args,
-        'unified_address',
+        'zcash_test_vectors/unified_address',
         (
             ('p2pkh_bytes',       'Option<[u8; 20]>'),
             ('p2sh_bytes',        'Option<[u8; 20]>'),
             ('sapling_raw_addr',  'Option<[u8; 43]>'),
             ('orchard_raw_addr',  'Option<[u8; 43]>'),
             ('unknown_typecode',  'Option<u32>'),
-            ('unknown_bytes',     {'rust_type': 'Option<Vec<u8>>', 'bitcoin_flavoured': False}),
+            ('unknown_bytes',     {'rust_type': 'Option<&\'static [u8]>', 'bitcoin_flavoured': False}),
             ('unified_addr',      {'rust_type': '&\'static str'}),
-            ('root_seed',         {'rust_type': 'Vec<u8>', 'bitcoin_flavoured': False}),
+            ('root_seed',         {'rust_type': '&\'static [u8]', 'bitcoin_flavoured': False}),
             ('account',           'u32'),
             ('diversifier_index', 'u32'),
         ),
