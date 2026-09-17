@@ -465,7 +465,7 @@ def generate_test_vectors(filename, test_vectors):
     args = render_args()
     render_tv(
         args,
-        filename,
+        'zcash_test_vectors/zip_0244',
         (
             ('tx',                    {'rust_type': '&\'static [u8]', 'bitcoin_flavoured': False}),
             ('txid',                  '[u8; 32]'),

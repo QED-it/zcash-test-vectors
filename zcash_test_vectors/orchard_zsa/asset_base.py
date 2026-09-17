@@ -98,7 +98,7 @@ def main():
 
     render_tv(
         args,
-        'orchard_zsa_asset_base',
+        'zcash_test_vectors/orchard_zsa/asset_base',
         (
             ('key', '[u8; 33]'),
             ('description', '[u8; 512]'),
