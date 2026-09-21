@@ -76,7 +76,7 @@ def main():
 
         rho = np.dummy_nullifier(rand)
         note = OrchardZSANote(d, pk_d, np.v, asset_bytes, rho, rseed)
-        cm = note.note_commitment()
+        cm = note.qr_note_commitment()
 
         ne = OrchardZSANoteEncryption(rand)
 
