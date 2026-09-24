@@ -71,7 +71,7 @@ def main():
         note_cm = note.note_commitment()
         note_rcm_zsa = note.qr_rcm()
         note_cm_zsa = note.qr_note_commitment()
-        note_nf = derive_nullifier(k.fvk.nk, k.note_rho, note.psi, note_cm)
+        note_nf = derive_nullifier(k.fvk.nk, k.note_rho, note.psi, note_cm_zsa)
 
         test_vectors.append({
             'sk': k.sk.data,
