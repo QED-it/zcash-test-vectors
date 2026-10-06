@@ -69,14 +69,14 @@ def main():
 
     render_tv(
         args,
-        'zip_0233',
+        'zcash_test_vectors/zip_0233',
         (
-            ('tx',                    {'rust_type': 'Vec<u8>', 'bitcoin_flavoured': False}),
+            ('tx',                    {'rust_type': '&\'static [u8]', 'bitcoin_flavoured': False}),
             ('txid',                  '[u8; 32]'),
             ('auth_digest',           '[u8; 32]'),
-            ('amounts',               'Vec<i64>'),
+            ('amounts',               '&\'static [i64]'),
             ('zip233_amount',         'u64'),
-            ('script_pubkeys',        {'rust_type': 'Vec<Vec<u8>>', 'bitcoin_flavoured': False}),
+            ('script_pubkeys',        {'rust_type': '&\'static [&\'static [u8]]', 'bitcoin_flavoured': False}),
             ('transparent_input',     'Option<u32>'),
             ('sighash_shielded',      '[u8; 32]'),
             ('sighash_all',           'Option<[u8; 32]>'),

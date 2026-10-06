@@ -98,7 +98,7 @@ def main():
 
     render_tv(
         args,
-        'orchard_zsa_key_components',
+        'zcash_test_vectors/orchard_zsa/key_components',
         (
             ('sk', '[u8; 32]'),
             ('ask', '[u8; 32]'),
