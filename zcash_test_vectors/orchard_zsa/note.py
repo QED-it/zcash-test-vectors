@@ -2,9 +2,10 @@ import struct
 
 from .asset_base import native_asset
 from .commitments import note_commit
-from ..orchard.key_components import diversify_hash
+from ..orchard.key_components import diversify_hash, prf_expand
 from ..orchard.note import OrchardNote, OrchardNotePlaintext
-from ..utils import leos2bsp
+from ..orchard.utils import to_scalar
+from ..utils import i2leosp, leos2bsp
 
 
 class OrchardZSANote(OrchardNote):
@@ -20,9 +21,26 @@ class OrchardZSANote(OrchardNote):
                 self.asset == other.asset
         )
 
+    def qr_rcm(self):
+        g_d = diversify_hash(self.d)
+        return to_scalar(prf_expand(
+            self.rseed,
+            b'\x0e' +
+            bytes(g_d) +
+            bytes(self.pk_d) +
+            i2leosp(64, self.v) +
+            bytes(self.rho) +
+            bytes(self.psi) +
+            bytes(self.asset),
+            ))
+
     def note_commitment(self):
         g_d = diversify_hash(self.d)
         return note_commit(self.rcm, leos2bsp(bytes(g_d)), leos2bsp(bytes(self.pk_d)), self.v, leos2bsp(bytes(self.asset)), self.rho, self.psi)
+
+    def qr_note_commitment(self):
+        g_d = diversify_hash(self.d)
+        return note_commit(self.qr_rcm(), leos2bsp(bytes(g_d)), leos2bsp(bytes(self.pk_d)), self.v, leos2bsp(bytes(self.asset)), self.rho, self.psi)
 
     def note_plaintext(self, memo):
         return OrchardZSANotePlaintext(self.d, self.v, self.rseed, self.asset, memo)
@@ -31,15 +49,15 @@ class OrchardZSANote(OrchardNote):
 class OrchardZSANotePlaintext(OrchardNotePlaintext):
     def __init__(self, d, v, rseed, asset, memo):
         super().__init__(d, v, rseed, memo)
-        self.leadbyte = bytes.fromhex('03')
+        self.leadbyte = bytes.fromhex('04')
         self.asset = asset
 
     @staticmethod
     def from_bytes(buf):
         leadbyte = buf[0]
-        if leadbyte == 2:
+        if leadbyte == 2 | leadbyte == 3:
             return OrchardZSANotePlaintext._from_bytes_orchard(buf)
-        if leadbyte == 3:
+        if leadbyte == 4:
             return OrchardZSANotePlaintext._from_bytes_zsa(buf)
         raise "invalid lead byte"
 

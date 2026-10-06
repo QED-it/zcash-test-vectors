@@ -132,7 +132,11 @@ class TransmittedNoteCipherText(object):
 
         note = self.construct_note(np, pk_d, rho)
 
-        cm = note.note_commitment()
+        if type(self) is TransmittedNoteCipherText:
+            cm = note.note_commitment()
+        else:
+            cm = note.qr_note_commitment()
+
         if cm is None:
             return None
         if cm.extract() != cm_star:
@@ -171,7 +175,11 @@ class TransmittedNoteCipherText(object):
 
         note = self.construct_note(np, pk_d, rho)
 
-        cm = note.note_commitment()
+        if type(self) is TransmittedNoteCipherText:
+            cm = note.note_commitment()
+        else:
+            cm = note.qr_note_commitment()
+
         if cm is None:
             return None
         if cm.extract() != cm_star:

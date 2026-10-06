@@ -69,7 +69,9 @@ def main():
             k.note_rseed,
         )
         note_cm = note.note_commitment()
-        note_nf = derive_nullifier(k.fvk.nk, k.note_rho, note.psi, note_cm)
+        note_rcm_zsa = note.qr_rcm()
+        note_cm_zsa = note.qr_note_commitment()
+        note_nf = derive_nullifier(k.fvk.nk, k.note_rho, note.psi, note_cm_zsa)
 
         test_vectors.append({
             'sk': k.sk.data,
@@ -93,6 +95,8 @@ def main():
             'note_rho': bytes(k.note_rho),
             'note_rseed': bytes(k.note_rseed),
             'note_cmx': bytes(note_cm.extract()),
+            'note_rcm_zsa': bytes(note_rcm_zsa),
+            'note_cmx_zsa': bytes(note_cm_zsa.extract()),
             'note_nf': bytes(note_nf),
         })
 
@@ -121,6 +125,8 @@ def main():
             ('note_rho', '[u8; 32]'),
             ('note_rseed', '[u8; 32]'),
             ('note_cmx', '[u8; 32]'),
+            ('note_rcm_zsa', '[u8; 32]'),
+            ('note_cmx_zsa', '[u8; 32]'),
             ('note_nf', '[u8; 32]'),
         ),
         test_vectors,
