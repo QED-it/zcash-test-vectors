@@ -60,6 +60,7 @@ case "$2" in
         zip_0221_v1
         zip_0221_v2
         zip_0221_v3
+        ironwood_v6_tx_hash
         zip_0032_registered
         zip_0032_arbitrary
         zip_0143

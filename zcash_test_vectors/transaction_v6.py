@@ -13,8 +13,8 @@ from .transaction import (
     NOTEENCRYPTION_AUTH_BYTES, ZC_SAPLING_ENCPLAINTEXT_SIZE,
     OrchardActionBase, TransactionBase,
 )
-from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, TransparentInput, \
-    signature_digest
+from .transaction_hash import signature_digest
+from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, TransparentInput
 
 # Orchard ZSA note values
 ZC_ORCHARD_ZSA_ASSET_SIZE = 32
@@ -147,7 +147,7 @@ class ActionGroupDescription(object):
         return ret
 
 
-class TransactionV6(TransactionBase):
+class TransactionZSA(TransactionBase): # TODO VA: Reconcile this with Ironwood
     def __init__(self, rand, consensus_branch_id, sighash_info, have_orchard_zsa=True, have_burn=True, have_issuance=True):
 
         # We cannot have burns without an OrchardZSA bundle.
@@ -287,7 +287,7 @@ def main():
 
     for choice in allowed_choices:
         for _ in range(2):    # We generate two test vectors for each choice.
-            tx = TransactionV6(rand, consensus_branch_id, SIGHASH_INFO_V0,  *choice)
+            tx = TransactionZSA(rand, consensus_branch_id, SIGHASH_INFO_V0,  *choice)
             populate_test_vector(rand, test_vectors, tx)
 
     generate_test_vectors('orchard_zsa_digests', test_vectors)

@@ -2,19 +2,25 @@
 import sys; assert sys.version_info[0] >= 3, "Python 3 required."
 
 from .transaction_v6 import (
-    TransactionV6,
+    TransactionZSA,
     SIGHASH_INFO_V0
 )
+from .transaction import IronwoodTransactionV6, MAX_MONEY
 from .output import render_args, render_tv
-from .rand import Rand
+from .transaction_hash import (
+    TransparentInput,
+    auth_digest_v6,
+    generate_sighashes_and_txin,
+    randbytes,
+    signature_digest_v6,
+    txid_digest_v6,
+)
 from .zip_0143 import (
     SIGHASH_ALL,
     SIGHASH_ANYONECANPAY,
     SIGHASH_NONE,
     SIGHASH_SINGLE,
 )
-
-from .zip_0244 import *
 
 def main():
     args = render_args()
@@ -27,7 +33,25 @@ def main():
 
     test_vectors = []
     for _ in range(10):
-        tx = TransactionV6(rand, consensusBranchId, SIGHASH_INFO_V0)
+        # tx = TransactionV6(rand, consensusBranchId, SIGHASH_INFO_V0) //TODO VA: reconcile with Ironwood
+
+        # A v6 transaction always carries both an Orchard and an Ironwood bundle
+        # section (each possibly empty), so build it with IronwoodTransactionV6
+        # and hash it with the v6 digesters. zip233Amount is set below, which
+        # both header_bytes and header_digest include via `hasattr`.
+        tx = IronwoodTransactionV6(
+            rand,
+            consensusBranchId,
+            transparent_inputs=rand.u8() % 4,
+            transparent_outputs=rand.u8() % 4,
+            sapling_spends=rand.u8() % 3,
+            sapling_outputs=rand.u8() % 3,
+            sapling_value_balance=rand.u64() % (MAX_MONEY + 1),
+            orchard_actions=rand.u8() % 3,
+            ironwood_actions=rand.u8() % 3,
+            orchard_value_balance=rand.u64() % (MAX_MONEY + 1),
+            ironwood_value_balance=rand.u64() % (MAX_MONEY + 1),
+        )
 
         # Generate amounts and scriptCodes for each non-dummy transparent input.
         t_inputs = []
@@ -45,10 +69,11 @@ def main():
         if rand.u8() % 2 == 0:
             tx.zip233Amount = 0
 
-        txid = txid_digest(tx)
-        auth = auth_digest(tx)
+        txid = txid_digest_v6(tx)
+        auth = auth_digest_v6(tx)
 
-        [sighash_shielded, other_sighashes, txin] = generate_sighashes_and_txin(tx, t_inputs, rand)
+        [sighash_shielded, other_sighashes, txin] = generate_sighashes_and_txin(
+            tx, t_inputs, rand, signature_digest_v6)
 
         test_vectors.append({
             'tx': bytes(tx),
