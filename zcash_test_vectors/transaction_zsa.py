@@ -310,7 +310,7 @@ def main():
             tx = TransactionZSA(rand, consensus_branch_id, SIGHASH_INFO_V0, *choice)
             populate_test_vector(rand, test_vectors, tx, True)
 
-    generate_test_vectors('orchard_zsa_digests', test_vectors)
+    generate_test_vectors('zcash_test_vectors/transaction_zsa', test_vectors)
 
 
 if __name__ == '__main__':

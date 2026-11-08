@@ -421,11 +421,11 @@ def populate_test_vector(rand, test_vectors, tx, is_zsa=False):
         'sighash_single_anyone': other_sighashes.get(SIGHASH_SINGLE | SIGHASH_ANYONECANPAY),
     })
 
-def generate_test_vectors(filename, test_vectors):
+def generate_test_vectors(source_path, test_vectors):
     args = render_args()
     render_tv(
         args,
-        'zcash_test_vectors/zip_0244',
+        source_path,
         (
             ('tx',                    {'rust_type': '&\'static [u8]', 'bitcoin_flavoured': False}),
             ('txid',                  '[u8; 32]'),
@@ -453,7 +453,7 @@ def main():
         tx = TransactionV5(rand, consensus_branch_id)
         populate_test_vector(rand, test_vectors, tx)
 
-    generate_test_vectors('zip_0244', test_vectors)
+    generate_test_vectors('zcash_test_vectors/zip_0244', test_vectors)
 
 if __name__ == '__main__':
     main()
