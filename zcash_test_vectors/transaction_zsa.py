@@ -100,14 +100,16 @@ class ActionGroupDescription(object):
         # There must always be a non-zero number of Action Descriptions in an Action Group.
         for _ in range(rand.u8() % 4 + 1):
             self.vActionsIronwood.append(IronwoodZSAActionDescription(rand, sighash_info))
-        # flagsIronwood, from LSB to MSB: enableSpends, enableOutputs, enableCrossAddress (MUST be 0),
-        # enableZSA (bit 3); other bits MUST be 0. Pick uniformly from {0b01, 0b10, 0b11}.
-        self.flagsIronwood = (rand.u8() % 3) + 1
+        # flagsIronwood, from LSB to MSB: enableSpends, enableOutputs, enableCrossAddress (ZIP 2006),
+        # enableZSA; the remaining bits MUST be 0. At least one of enableSpends and enableOutputs
+        # MUST be set; enableCrossAddress may take either value.
+        self.flagsIronwood = rand.a([0b001, 0b010, 0b011, 0b101, 0b110, 0b111])
         # Set enableZSA by OR with 0b00001000.
         self.flagsIronwood |= 8
         if is_coinbase:
-            # set enableSpends = 0 and enableZSA = 0 and enableOutputs = 1 for coinbase.
-            self.flagsIronwood = 2
+            # In coinbase transactions, enableSpends and enableZSA MUST be 0, so set enableOutputs = 1
+            # and keep the drawn enableCrossAddress.
+            self.flagsIronwood = (self.flagsIronwood & 0b100) | 0b010
         self.anchorIronwood = anchor_ironwood
         self.nAGExpiryHeight = 0
 
