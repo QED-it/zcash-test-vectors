@@ -55,7 +55,7 @@ class OrchardZSANotePlaintext(OrchardNotePlaintext):
     @staticmethod
     def from_bytes(buf):
         leadbyte = buf[0]
-        if leadbyte == 2 | leadbyte == 3:
+        if leadbyte in (2, 3):
             return OrchardZSANotePlaintext._from_bytes_orchard(buf)
         if leadbyte == 0xf0:
             return OrchardZSANotePlaintext._from_bytes_zsa(buf)
