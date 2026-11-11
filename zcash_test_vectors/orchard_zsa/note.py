@@ -49,7 +49,7 @@ class OrchardZSANote(OrchardNote):
 class OrchardZSANotePlaintext(OrchardNotePlaintext):
     def __init__(self, d, v, rseed, asset, memo):
         super().__init__(d, v, rseed, memo)
-        self.leadbyte = bytes.fromhex('04')
+        self.leadbyte = bytes.fromhex('f0')
         self.asset = asset
 
     @staticmethod
@@ -57,7 +57,7 @@ class OrchardZSANotePlaintext(OrchardNotePlaintext):
         leadbyte = buf[0]
         if leadbyte == 2 | leadbyte == 3:
             return OrchardZSANotePlaintext._from_bytes_orchard(buf)
-        if leadbyte == 4:
+        if leadbyte == 0xf0:
             return OrchardZSANotePlaintext._from_bytes_zsa(buf)
         raise "invalid lead byte"
 
