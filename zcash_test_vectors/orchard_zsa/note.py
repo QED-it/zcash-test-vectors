@@ -59,7 +59,7 @@ class OrchardZSANotePlaintext(OrchardNotePlaintext):
             return OrchardZSANotePlaintext._from_bytes_orchard(buf)
         if leadbyte == 0xf0:
             return OrchardZSANotePlaintext._from_bytes_zsa(buf)
-        raise "invalid lead byte"
+        raise ValueError("invalid lead byte")
 
     @staticmethod
     def _from_bytes_orchard(buf):
