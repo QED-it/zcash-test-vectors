@@ -54,7 +54,7 @@ def transparent_auth_digest_with_sighash_info(tx):
         digest.update(bytes(vin.scriptSig))
     return digest.digest()
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t5-ironwood_digest_zsa
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t3-ironwood_digest_zsa
 def ironwood_digest_zsa(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdIronwdH_zsa')
 
@@ -65,7 +65,7 @@ def ironwood_digest_zsa(tx):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t5a-ironwood_action_groups_digest_zsa
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t3a-ironwood_action_groups_digest_zsa
 def ironwood_action_groups_digest_zsa(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdIrn_AGH_zsa')
 
@@ -81,7 +81,7 @@ def ironwood_action_groups_digest_zsa(tx):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a4-ironwood_auth_digest_zsa
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a2-ironwood_auth_digest_zsa
 def ironwood_auth_digest_zsa(tx):
     digest = blake2b(digest_size=32, person=b'ZTxAuthIrnH__zsa')
 
@@ -94,7 +94,7 @@ def ironwood_auth_digest_zsa(tx):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a4-ironwood_auth_digest_zsa
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a2a-ironwood_action_groups_auth_digest
 def ironwood_action_groups_auth_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxAuthIrnAGHash')
 
@@ -105,7 +105,7 @@ def ironwood_action_groups_auth_digest(tx):
 
     return digest.digest()
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a4aii-ironwood_spend_auth_sigs_auth_digest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a2aii-ironwood_spend_auth_sigs_auth_digest
 def ironwood_spend_auth_sigs_auth_digest(actions):
     digest = blake2b(digest_size=32, person=b'ZTxAuthIrnSASH__')
 
@@ -117,7 +117,7 @@ def ironwood_spend_auth_sigs_auth_digest(actions):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a4aii-ironwood_spend_auth_sigs_auth_digest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t3ai-ironwood_actions_compact_digest_zsa
 def ironwood_actions_compact_digest_zsa(ag):
     digest = blake2b(digest_size=32, person=b'ZTxIdIrn_ACH_zsa')
     for desc in ag.vActionsIronwood:
@@ -129,7 +129,7 @@ def ironwood_actions_compact_digest_zsa(ag):
     return digest.digest()
 
 
-# https://zips.z.cash/zip-0229#ironwoodcomponentdigest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t3aii-ironwood_actions_memos_digest_zsa
 def ironwood_actions_memos_digest_zsa(ag):
     digest = blake2b(digest_size=32, person=b'ZTxIdIrn_AMH_zsa')
     for desc in ag.vActionsIronwood:
@@ -138,7 +138,7 @@ def ironwood_actions_memos_digest_zsa(ag):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t5aiii-ironwood_actions_noncompact_digest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t3aiii-ironwood_actions_noncompact_digest_zsa
 def ironwood_actions_noncompact_digest_zsa(ag):
     digest = blake2b(digest_size=32, person=b'ZTxIdIrn_ANH_zsa')
     for desc in ag.vActionsIronwood:
@@ -150,7 +150,7 @@ def ironwood_actions_noncompact_digest_zsa(ag):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t5avi-ironwood_burn_digest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t3avi-ironwood_burn_digest
 def ironwood_burn_digest(ag):
     digest = blake2b(digest_size=32, person=b'ZTxIdIrnBurnHash')
 
@@ -162,7 +162,7 @@ def ironwood_burn_digest(ag):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t6-issuance_digest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t4-issuance_digest
 def issuance_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdSAIssueHash')
 
@@ -174,7 +174,7 @@ def issuance_digest(tx):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a5-issuance_auth_digest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a3-issuance_auth_digest
 def issuance_auth_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxAuthIssH__zsa')
     if len(tx.vIssueActions) > 0:
@@ -185,7 +185,7 @@ def issuance_auth_digest(tx):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t6a-issue_actions_digest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t4c-issue_actions_digest
 def issue_actions_digest(tx):
     digest = blake2b(digest_size=32, person=b'ZTxIdIssuActHash')
 
@@ -197,7 +197,7 @@ def issue_actions_digest(tx):
     return digest.digest()
 
 
-# https://github.com/QED-it/zips/blob/building_on_zsa-ironwood-update/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t6aii-issue_notes_digest
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#t4cii-issue_notes_digest
 def issue_notes_digest(action):
     digest = blake2b(digest_size=32, person=b'ZTxIdIAcNoteHash')
 
