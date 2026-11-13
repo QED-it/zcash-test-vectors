@@ -182,7 +182,7 @@ class TransactionZSA(TransactionBase):
         # Common Transaction Fields
         self.nVersionGroupId = NU_ZSA_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
-        self.zip233Amount = 0
+        # self.zip233Amount = 0 # not included in spec.
 
         # Transparent Transaction Fields
         self.vSighashInfo = [sighash_info] * len(self.vin)
