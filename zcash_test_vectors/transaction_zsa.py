@@ -96,7 +96,7 @@ class IssueNoteDescription(object):
 
 
 class ActionGroupDescription(object):
-    def __init__(self, rand, anchor_ironwood, is_coinbase, have_burn, sighash_info):
+    def __init__(self, rand, anchor_ironwood, is_coinbase, need_spends, needs_outputs, have_burn, sighash_info):
         self.vActionsIronwood = []
         # There must always be a non-zero number of Action Descriptions in an Action Group.
         for _ in range(rand.u8() % 4 + 1):
@@ -111,6 +111,12 @@ class ActionGroupDescription(object):
             # In coinbase transactions, enableSpends and enableZSA MUST be 0, so set enableOutputs = 1
             # and keep the drawn enableCrossAddress.
             self.flagsIronwood = (self.flagsIronwood & 0b100) | 0b010
+        else:
+            if need_spends:
+                self.flagsIronwood |= 0b001
+            if needs_outputs:
+                self.flagsIronwood |= 0b010
+
         self.anchorIronwood = anchor_ironwood
         self.nAGExpiryHeight = 0
 
@@ -159,6 +165,11 @@ class TransactionZSA(TransactionBase):
         have_transparent_out = (flip_coins >> 1) % 2
         is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
 
+        if not have_ironwood_zsa:
+            # Without IronwoodZSA, we must have transparent inputs (unless coinbase) and transparent outputs.
+            have_transparent_in = not is_coinbase
+            have_transparent_out = True
+
         # We cannot have burns without an IronwoodZSA bundle.
         assert have_ironwood_zsa or not have_burn
 
@@ -186,7 +197,15 @@ class TransactionZSA(TransactionBase):
             self.bindingSigIronwood = RedPallasSignature(rand)
             self.bindingSigIronwoodInfo = sighash_info
             # For ZSA (pre-Swaps) we have a maximum of one Action Group.
-            self.vActionGroupsIronwood.append(ActionGroupDescription(rand, self.anchorIronwood, self.is_coinbase(), have_burn, sighash_info))
+            self.vActionGroupsIronwood.append(ActionGroupDescription(
+                rand,
+                self.anchorIronwood,
+                self.is_coinbase(),
+                len(self.vin) == 0,
+                len(self.vout) == 0,
+                have_burn,
+                sighash_info
+            ))
         else:
             # If valueBalanceIronwood is not present in the serialized transaction, then
             # v^balanceIronwood is defined to be 0.
