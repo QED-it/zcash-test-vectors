@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import sys;
 
-from ..digests_v6 import sapling_digest_v6, orchard_digest_v6, orchard_auth_digest_v6, sapling_auth_digest_v6
 from ..zip_0244 import TRANSPARENT_AUTH_DIGEST_PERSONALIZATION, header_digest, transparent_digest, \
     transparent_sig_digest
 
@@ -12,10 +11,11 @@ import struct
 
 from ..zc_utils import write_compact_size
 
-NU7_VERSION_GROUP_ID = 0x77777777
-NU7_TX_VERSION = 7
-NU7_TX_VERSION_BYTES = NU7_TX_VERSION | (1 << 31)
+NU_ZSA_VERSION_GROUP_ID = 0x77777777
+NU_ZSA_TX_VERSION = 7
+NU_ZSA_TX_VERSION_BYTES = NU_ZSA_TX_VERSION | (1 << 31)
 
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#txid-digest
 def txid_digest_zsa(tx):
     digest = blake2b(
         digest_size=32,
@@ -24,13 +24,12 @@ def txid_digest_zsa(tx):
 
     digest.update(header_digest(tx))
     digest.update(transparent_digest(tx))
-    digest.update(sapling_digest_v6(tx))
-    digest.update(orchard_digest_v6(tx))
     digest.update(ironwood_digest_zsa(tx))
     digest.update(issuance_digest(tx))
 
     return digest.digest()
 
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#authorizing-data-commitment
 def auth_digest_zsa(tx):
     digest = blake2b(
         digest_size=32,
@@ -38,14 +37,13 @@ def auth_digest_zsa(tx):
     )
 
     digest.update(transparent_auth_digest_with_sighash_info(tx))
-    digest.update(sapling_auth_digest_v6(tx))
-    digest.update(orchard_auth_digest_v6(tx))
     digest.update(ironwood_auth_digest_zsa(tx))
     digest.update(issuance_auth_digest(tx))
 
     return digest.digest()
 
 
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#a1-transparent_auth_digest
 def transparent_auth_digest_with_sighash_info(tx):
     digest = blake2b(digest_size=32, person=TRANSPARENT_AUTH_DIGEST_PERSONALIZATION)
     for (sighash_info, vin) in zip(tx.vSighashInfo, tx.vin):
@@ -209,6 +207,7 @@ def issue_notes_digest(action):
 
     return digest.digest()
 
+# https://github.com/QED-it/zips/blob/zsa1/zips/draft-qedit-zsa-transaction-format-and-digests.rst#signature-digest
 def signature_digest_zsa(tx, t_inputs, nHashType, txin):
     digest = blake2b(
         digest_size=32,
@@ -217,8 +216,6 @@ def signature_digest_zsa(tx, t_inputs, nHashType, txin):
 
     digest.update(header_digest(tx))
     digest.update(transparent_sig_digest(tx, t_inputs, nHashType, txin))
-    digest.update(sapling_digest_v6(tx))
-    digest.update(orchard_digest_v6(tx))
     digest.update(ironwood_digest_zsa(tx))
     digest.update(issuance_digest(tx))
 

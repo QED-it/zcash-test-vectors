@@ -41,7 +41,7 @@ def main():
         txid = txid_digest_zsa(tx)
         auth = auth_digest_zsa(tx)
 
-        [sighash_shielded, other_sighashes, txin] = generate_sighashes_and_txin(tx, t_inputs, rand)
+        [sighash_shielded, other_sighashes, txin] = generate_sighashes_and_txin(tx, t_inputs, rand, True)
 
         test_vectors.append({
             'tx': bytes(tx),

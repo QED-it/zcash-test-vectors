@@ -416,22 +416,11 @@ class LegacyTransaction(object):
 
         return ret
 
-# Creating a base transaction class with common fields that V5 and subsequent versions can inherit.
+# A base transaction class with common fields that V5 and vZSA transactions can inherit
 class TransactionBase(object):
-    def __init__(self, rand, have_ironwood=True):
-        # Decide which transaction parts will be generated.
-        flip_coins = rand.u8()
-        have_transparent_in = (flip_coins >> 0) % 2
-        have_transparent_out = (flip_coins >> 1) % 2
-        have_sapling = (flip_coins >> 2) % 2
-        have_orchard = (flip_coins >> 3) % 2
-        is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
-
+    def __init__(self, rand, have_transparent_in, have_transparent_out, is_coinbase):
         self.init_header_base(rand)
         self.init_transparent(rand, have_transparent_in, have_transparent_out, is_coinbase)
-        self.init_sapling(rand, have_sapling, is_coinbase)
-        self.init_orchard(rand, have_orchard, is_coinbase)
-        self.init_ironwood_base(rand, have_ironwood)
 
         assert is_coinbase == self.is_coinbase()
 
@@ -456,81 +445,15 @@ class TransactionBase(object):
             for _ in range((rand.u8() % 3) + 1):
                 self.vout.append(TxOut(rand))
 
-    def init_sapling(self, rand, have_sapling, is_coinbase):
-        # Sapling Transaction Fields
-        self.vSpendsSapling = []
-        self.vOutputsSapling = []
-        if have_sapling:
-            # This anchor will be ignored if there are no Sapling spends.
-            self.anchorSapling = Fq(leos2ip(rand.b(32)))
-            # We use the randomness unconditionally here to avoid unnecessary test vector changes.
-            for _ in range(rand.u8() % 3):
-                spend = SpendDescription(rand, self.anchorSapling)
-                if not is_coinbase:
-                    self.vSpendsSapling.append(spend)
-            for _ in range(rand.u8() % 3):
-                self.vOutputsSapling.append(OutputDescription(rand))
-
-            # valueBalanceSapling is "The net value of Sapling spends minus outputs."
-            # So it's invalid to have a positive valueBalanceSapling if there are no spends,
-            # or a negative valueBalanceSapling if there are no outputs (this is not enforced
-            # as a separate consensus rule but it holds under the assumption of soundness
-            # of the spend and output circuits).
-            valueBalanceSapling = rand.u64() % (MAX_MONEY + 1)
-            if len(self.vSpendsSapling) == 0:
-                valueBalanceSapling = min(0, valueBalanceSapling)
-            if len(self.vOutputsSapling) == 0:
-                valueBalanceSapling = max(0, valueBalanceSapling)
-            self.valueBalanceSapling = valueBalanceSapling
-
-            # This binding sig will be ignored if there are neither Sapling spends nor outputs.
-            self.bindingSigSapling = RedJubjubSignature(rand)
-        else:
-            # If valueBalanceSapling is not present in the serialized transaction, then
-            # v^balanceSapling is defined to be 0.
-            self.valueBalanceSapling = 0
-
-    def init_orchard(self, rand, have_orchard, is_coinbase):
-        # Orchard Transaction Fields
-        self.vActionsOrchard = []
-        if have_orchard:
-            for _ in range(max(1, rand.u8() % 5)):
-                self.vActionsOrchard.append(OrchardActionDescription(rand))
-            self.flagsOrchard = rand.u8() & 3 # Only two flag bits are currently defined.
-            if is_coinbase:
-                # set enableSpendsOrchard = 0
-                self.flagsOrchard &= 2
-            self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
-            self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
-            self.proofsOrchard = rand.b(rand.u8() + 32) # Proof will always contain at least one element
-            self.bindingSigOrchard = RedPallasSignature(rand)
-        else:
-            # If valueBalanceOrchard is not present in the serialized transaction, then
-            # v^balanceOrchard is defined to be 0.
-            self.valueBalanceOrchard = 0
-
-    def init_ironwood_base(self, rand, have_ironwood):
-        # Ironwood Transaction Fields that are present in both V5 and ZSA
-        if have_ironwood:
-            self.valueBalanceIronwood = rand.u64() % (MAX_MONEY + 1)
-            self.anchorIronwood = PallasBase(leos2ip(rand.b(32)))
-            self.proofsIronwood = rand.b(rand.u8() + 32) # Proof will always contain at least one element
-            self.bindingSigIronwood = RedPallasSignature(rand)
-        else:
-            # If valueBalanceIronwood is not present in the serialized transaction, then
-            # v^balanceIronwood is defined to be 0.
-            self.valueBalanceIronwood = 0
-
     def is_coinbase(self):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
 
     def to_bytes(self, version_bytes, version_group_id, consensus_branch_id):
+        # Only the fields common to all subclasses; each subclass appends its own bundles.
         ret = b''
         ret += self.header_bytes(version_bytes, version_group_id, consensus_branch_id)
         ret += self.transparent_bytes()
-        ret += self.sapling_bytes()
-        ret += self.orchard_bytes()
         return ret
 
     def header_bytes(self, version_bytes, version_group_id, consensus_branch_id):
@@ -559,6 +482,88 @@ class TransactionBase(object):
     def transparent_sighash_info_bytes(self):
         raise NotImplementedError("The transparent_sighash_info_bytes method must be implemented in the child class.")
 
+
+class TransactionV5(TransactionBase):
+    def __init__(self, rand, consensus_branch_id):
+        # Decide which transaction parts will be generated.
+        flip_coins = rand.u8()
+        have_transparent_in = (flip_coins >> 0) % 2
+        have_transparent_out = (flip_coins >> 1) % 2
+        have_sapling = (flip_coins >> 2) % 2
+        have_orchard = (flip_coins >> 3) % 2
+        is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
+
+        # The header and Transparent Transaction Fields are initialized in the super class.
+        super().__init__(rand, have_transparent_in, have_transparent_out, is_coinbase)
+
+        # Common Transaction Fields
+        self.nVersionGroupId = NU5_VERSION_GROUP_ID
+        self.nConsensusBranchId = consensus_branch_id
+
+        self.init_sapling(rand, have_sapling)
+        self.init_orchard(rand, have_orchard)
+
+    def init_sapling(self, rand, have_sapling):
+        # Sapling Transaction Fields
+        self.vSpendsSapling = []
+        self.vOutputsSapling = []
+        if have_sapling:
+            # This anchor will be ignored if there are no Sapling spends.
+            self.anchorSapling = Fq(leos2ip(rand.b(32)))
+            # We use the randomness unconditionally here to avoid unnecessary test vector changes.
+            for _ in range(rand.u8() % 3):
+                spend = SpendDescription(rand, self.anchorSapling)
+                if not self.is_coinbase():
+                    self.vSpendsSapling.append(spend)
+            for _ in range(rand.u8() % 3):
+                self.vOutputsSapling.append(OutputDescription(rand))
+
+            # valueBalanceSapling is "The net value of Sapling spends minus outputs."
+            # So it's invalid to have a positive valueBalanceSapling if there are no spends,
+            # or a negative valueBalanceSapling if there are no outputs (this is not enforced
+            # as a separate consensus rule but it holds under the assumption of soundness
+            # of the spend and output circuits).
+            valueBalanceSapling = rand.u64() % (MAX_MONEY + 1)
+            if len(self.vSpendsSapling) == 0:
+                valueBalanceSapling = min(0, valueBalanceSapling)
+            if len(self.vOutputsSapling) == 0:
+                valueBalanceSapling = max(0, valueBalanceSapling)
+            self.valueBalanceSapling = valueBalanceSapling
+
+            # This binding sig will be ignored if there are neither Sapling spends nor outputs.
+            self.bindingSigSapling = RedJubjubSignature(rand)
+        else:
+            # If valueBalanceSapling is not present in the serialized transaction, then
+            # v^balanceSapling is defined to be 0.
+            self.valueBalanceSapling = 0
+
+    def init_orchard(self, rand, have_orchard):
+        # Orchard Transaction Fields
+        self.vActionsOrchard = []
+        if have_orchard:
+            for _ in range(max(1, rand.u8() % 5)):
+                self.vActionsOrchard.append(OrchardActionDescription(rand))
+            self.flagsOrchard = rand.u8() & 3 # Only two flag bits are currently defined.
+            if self.is_coinbase():
+                # set enableSpendsOrchard = 0
+                self.flagsOrchard &= 2
+            self.valueBalanceOrchard = rand.u64() % (MAX_MONEY + 1)
+            self.anchorOrchard = PallasBase(leos2ip(rand.b(32)))
+            self.proofsOrchard = rand.b(rand.u8() + 32) # Proof will always contain at least one element
+            self.bindingSigOrchard = RedPallasSignature(rand)
+        else:
+            # If valueBalanceOrchard is not present in the serialized transaction, then
+            # v^balanceOrchard is defined to be 0.
+            self.valueBalanceOrchard = 0
+
+    @staticmethod
+    def version_bytes():
+        return NU5_TX_VERSION_BYTES
+
+    def transparent_sighash_info_bytes(self):
+        # There are no such bytes for V5 transactions.
+        return b''
+
     def sapling_bytes(self):
         ret = b''
         # Sapling Transaction Fields
@@ -578,19 +583,13 @@ class TransactionBase(object):
             for desc in self.vSpendsSapling: # vSpendProofsSapling
                 ret += bytes(desc.proof)
             for desc in self.vSpendsSapling: # vSpendAuthSigsSapling
-                ret += self.sapling_spend_auth_sig_bytes(desc)
+                ret += bytes(desc.spendAuthSig)
         for desc in self.vOutputsSapling: # vOutputProofsSapling
             ret += bytes(desc.proof)
         if has_sapling:
-            ret += self.sapling_binding_sig_bytes()
+            ret += bytes(self.bindingSigSapling)
 
         return ret
-
-    def sapling_spend_auth_sig_bytes(self, desc):
-        raise NotImplementedError("The sapling_spend_auth_sig_bytes method must be implemented in the child class.")
-
-    def sapling_binding_sig_bytes(self):
-        raise NotImplementedError("The sapling_binding_sig_bytes method must be implemented in the child class.")
 
     def orchard_bytes(self):
         ret = b''
@@ -607,61 +606,23 @@ class TransactionBase(object):
             ret += write_compact_size(len(self.proofsOrchard))
             ret += self.proofsOrchard
             for desc in self.vActionsOrchard:
-                ret += bytes(self.orchard_spend_auth_sig_bytes(desc))
-            ret += bytes(self.orchard_binding_sig_bytes())
+                ret += bytes(desc.spendAuthSig)
+            ret += bytes(self.bindingSigOrchard)
 
         return ret
-
-    def orchard_spend_auth_sig_bytes(self, desc):
-        raise NotImplementedError("The orchard_spend_auth_sig_bytes method must be implemented in the child class.")
-
-    def orchard_binding_sig_bytes(self):
-        raise NotImplementedError("The orchard_binding_sig_bytes method must be implemented in the child class.")
-
-
-
-class TransactionV5(TransactionBase):
-    def __init__(self, rand, consensus_branch_id):
-        have_ironwood = False
-        # All Transparent, Sapling, Orchard and part of the Ironwood Transaction Fields are initialized in the super
-        # class.
-        super().__init__(rand, have_ironwood)
-
-        # Common Transaction Fields
-        self.nVersionGroupId = NU5_VERSION_GROUP_ID
-        self.nConsensusBranchId = consensus_branch_id
-
-        # Ironwood Transaction Fields are empty for V5.
-        self.vActionsIronwood = []
-
-    @staticmethod
-    def version_bytes():
-        return NU5_TX_VERSION_BYTES
-
-    def transparent_sighash_info_bytes(self):
-        # There are no such bytes for V5 transactions.
-        return b''
-
-    def sapling_spend_auth_sig_bytes(self, desc):
-        return bytes(desc.spendAuthSig)
-
-    def sapling_binding_sig_bytes(self):
-        return bytes(self.bindingSigSapling)
-
-    def orchard_spend_auth_sig_bytes(self, desc):
-        return bytes(desc.spendAuthSig)
-
-    def orchard_binding_sig_bytes(self):
-        return bytes(self.bindingSigOrchard)
-
 
     def __bytes__(self):
         ret = b''
 
-        # Common Transaction Fields
+        # Header and Transparent Transaction Fields
         ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
-        # Ironwood Transaction Fields do not exist for V5 transactions, so we don't serialize them.
+        # Sapling Transaction Fields
+        ret += self.sapling_bytes()
+
+        # Orchard Transaction Fields
+        ret += self.orchard_bytes()
+
         return ret
 
 class Transaction(object):
