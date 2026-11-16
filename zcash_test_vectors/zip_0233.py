@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+# Note: Not included in the ZSA specification.
+
 import sys; assert sys.version_info[0] >= 3, "Python 3 required."
 
 from .transaction_zsa import (
@@ -41,7 +44,7 @@ def main():
         txid = txid_digest_zsa(tx)
         auth = auth_digest_zsa(tx)
 
-        [sighash_shielded, other_sighashes, txin] = generate_sighashes_and_txin(tx, t_inputs, rand)
+        [sighash_shielded, other_sighashes, txin] = generate_sighashes_and_txin(tx, t_inputs, rand, True)
 
         test_vectors.append({
             'tx': bytes(tx),
