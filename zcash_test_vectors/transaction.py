@@ -416,22 +416,11 @@ class LegacyTransaction(object):
 
         return ret
 
-# Creating a base transaction class with common fields that V5 and subsequent versions can inherit.
+# A base transaction class with fields that V5 and vZSA transactions can inherit.
 class TransactionBase(object):
-    def __init__(self, rand, have_ironwood=True):
-        # Decide which transaction parts will be generated.
-        flip_coins = rand.u8()
-        have_transparent_in = (flip_coins >> 0) % 2
-        have_transparent_out = (flip_coins >> 1) % 2
-        have_sapling = (flip_coins >> 2) % 2
-        have_orchard = (flip_coins >> 3) % 2
-        is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
-
+    def __init__(self, rand, have_transparent_in, have_transparent_out, is_coinbase):
         self.init_header_base(rand)
         self.init_transparent(rand, have_transparent_in, have_transparent_out, is_coinbase)
-        self.init_sapling(rand, have_sapling, is_coinbase)
-        self.init_orchard(rand, have_orchard, is_coinbase)
-        self.init_ironwood_base(rand, have_ironwood)
 
         assert is_coinbase == self.is_coinbase()
 
@@ -509,18 +498,6 @@ class TransactionBase(object):
             # v^balanceOrchard is defined to be 0.
             self.valueBalanceOrchard = 0
 
-    def init_ironwood_base(self, rand, have_ironwood):
-        # Ironwood Transaction Fields that are present in both V5 and ZSA
-        if have_ironwood:
-            self.valueBalanceIronwood = rand.u64() % (MAX_MONEY + 1)
-            self.anchorIronwood = PallasBase(leos2ip(rand.b(32)))
-            self.proofsIronwood = rand.b(rand.u8() + 32) # Proof will always contain at least one element
-            self.bindingSigIronwood = RedPallasSignature(rand)
-        else:
-            # If valueBalanceIronwood is not present in the serialized transaction, then
-            # v^balanceIronwood is defined to be 0.
-            self.valueBalanceIronwood = 0
-
     def is_coinbase(self):
         # <https://github.com/zcash/zcash/blob/d8c818bfa507adb845e527f5beb38345c490b330/src/primitives/transaction.h#L969-L972>
         return len(self.vin) == 1 and bytes(self.vin[0].prevout.txid) == b'\x00'*32 and self.vin[0].prevout.n == 0xFFFFFFFF
@@ -529,8 +506,6 @@ class TransactionBase(object):
         ret = b''
         ret += self.header_bytes(version_bytes, version_group_id, consensus_branch_id)
         ret += self.transparent_bytes()
-        ret += self.sapling_bytes()
-        ret += self.orchard_bytes()
         return ret
 
     def header_bytes(self, version_bytes, version_group_id, consensus_branch_id):
@@ -578,19 +553,13 @@ class TransactionBase(object):
             for desc in self.vSpendsSapling: # vSpendProofsSapling
                 ret += bytes(desc.proof)
             for desc in self.vSpendsSapling: # vSpendAuthSigsSapling
-                ret += self.sapling_spend_auth_sig_bytes(desc)
+                ret += bytes(desc.spendAuthSig)
         for desc in self.vOutputsSapling: # vOutputProofsSapling
             ret += bytes(desc.proof)
         if has_sapling:
-            ret += self.sapling_binding_sig_bytes()
+            ret += bytes(self.bindingSigSapling)
 
         return ret
-
-    def sapling_spend_auth_sig_bytes(self, desc):
-        raise NotImplementedError("The sapling_spend_auth_sig_bytes method must be implemented in the child class.")
-
-    def sapling_binding_sig_bytes(self):
-        raise NotImplementedError("The sapling_binding_sig_bytes method must be implemented in the child class.")
 
     def orchard_bytes(self):
         ret = b''
@@ -607,32 +576,29 @@ class TransactionBase(object):
             ret += write_compact_size(len(self.proofsOrchard))
             ret += self.proofsOrchard
             for desc in self.vActionsOrchard:
-                ret += bytes(self.orchard_spend_auth_sig_bytes(desc))
-            ret += bytes(self.orchard_binding_sig_bytes())
+                ret += bytes(desc.spendAuthSig)
+            ret += bytes(self.bindingSigOrchard)
 
         return ret
-
-    def orchard_spend_auth_sig_bytes(self, desc):
-        raise NotImplementedError("The orchard_spend_auth_sig_bytes method must be implemented in the child class.")
-
-    def orchard_binding_sig_bytes(self):
-        raise NotImplementedError("The orchard_binding_sig_bytes method must be implemented in the child class.")
-
 
 
 class TransactionV5(TransactionBase):
     def __init__(self, rand, consensus_branch_id):
-        have_ironwood = False
-        # All Transparent, Sapling, Orchard and part of the Ironwood Transaction Fields are initialized in the super
-        # class.
-        super().__init__(rand, have_ironwood)
+        # Decide which transaction parts will be generated.
+        flip_coins = rand.u8()
+        have_transparent_in = (flip_coins >> 0) % 2
+        have_transparent_out = (flip_coins >> 1) % 2
+        have_sapling = (flip_coins >> 2) % 2
+        have_orchard = (flip_coins >> 3) % 2
+        is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
+
+        super().__init__(rand, have_transparent_in, have_transparent_out, is_coinbase)
+        self.init_sapling(rand, have_sapling, is_coinbase)
+        self.init_orchard(rand, have_orchard, is_coinbase)
 
         # Common Transaction Fields
         self.nVersionGroupId = NU5_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
-
-        # Ironwood Transaction Fields are empty for V5.
-        self.vActionsIronwood = []
 
     @staticmethod
     def version_bytes():
@@ -642,26 +608,14 @@ class TransactionV5(TransactionBase):
         # There are no such bytes for V5 transactions.
         return b''
 
-    def sapling_spend_auth_sig_bytes(self, desc):
-        return bytes(desc.spendAuthSig)
-
-    def sapling_binding_sig_bytes(self):
-        return bytes(self.bindingSigSapling)
-
-    def orchard_spend_auth_sig_bytes(self, desc):
-        return bytes(desc.spendAuthSig)
-
-    def orchard_binding_sig_bytes(self):
-        return bytes(self.bindingSigOrchard)
-
-
     def __bytes__(self):
         ret = b''
 
         # Common Transaction Fields
         ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
+        ret += self.sapling_bytes()
+        ret += self.orchard_bytes()
 
-        # Ironwood Transaction Fields do not exist for V5 transactions, so we don't serialize them.
         return ret
 
 class Transaction(object):
