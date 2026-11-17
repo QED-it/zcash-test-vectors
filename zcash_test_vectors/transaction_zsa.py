@@ -6,7 +6,7 @@ from zcash_test_vectors.zip_0143 import SIGHASH_ALL
 from .orchard.key_components import FullViewingKey, SpendingKey
 from .orchard.pallas import Point
 from .ironwood_zsa.key_components import IssuanceKeys, ZSA_BIP340_SIG_SCHEME
-from .ironwood_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION_BYTES, signature_digest_zsa
+from .ironwood_zsa.digests import NUZSA_VERSION_GROUP_ID, NUZSA_TX_VERSION_BYTES, signature_digest_zsa
 from .ironwood_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes, asset_desc_digest
 from .zc_utils import write_compact_size
 from .transaction import (
@@ -179,7 +179,7 @@ class TransactionZSA(TransactionBase):
 
 
     # Common Transaction Fields
-        self.nVersionGroupId = NU7_VERSION_GROUP_ID
+        self.nVersionGroupId = NUZSA_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
         # self.zip233Amount = 0 # not included in ZSA specification.
 
@@ -211,7 +211,7 @@ class TransactionZSA(TransactionBase):
 
     @staticmethod
     def version_bytes():
-        return NU7_TX_VERSION_BYTES
+        return NUZSA_TX_VERSION_BYTES
 
     def header_bytes(self, version_bytes, version_group_id, consensus_branch_id):
         ret = b''
