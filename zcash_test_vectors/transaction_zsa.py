@@ -216,7 +216,6 @@ class TransactionZSA(TransactionBase):
     def header_bytes(self, version_bytes, version_group_id, consensus_branch_id):
         ret = b''
         ret += super().header_bytes(version_bytes, version_group_id, consensus_branch_id)
-        # ret += struct.pack('<Q', self.zip233Amount) # not included in ZSA specification.
         return ret
 
     def transparent_sighash_info_bytes(self):

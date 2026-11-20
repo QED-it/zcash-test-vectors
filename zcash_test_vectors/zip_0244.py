@@ -195,8 +195,8 @@ def header_digest(tx):
     digest.update(struct.pack('<I', tx.nConsensusBranchId))
     digest.update(struct.pack('<I', tx.nLockTime))
     digest.update(struct.pack('<I', tx.nExpiryHeight))
-    # if hasattr(tx, 'zip233Amount'):
-    #     digest.update(struct.pack('<Q', tx.zip233Amount)) # not included in the ZSA specification.
+    if hasattr(tx, 'zip233Amount'):
+        digest.update(struct.pack('<Q', tx.zip233Amount))
 
     return digest.digest()
 
