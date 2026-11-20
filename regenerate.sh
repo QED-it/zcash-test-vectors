@@ -63,7 +63,7 @@ case "$2" in
         zip_0032_registered
         zip_0032_arbitrary
         zip_0143
-#        zip_0233
+        zip_0233
         zip_0243
         zip_0244
         ironwood_zsa_digests
