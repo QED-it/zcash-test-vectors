@@ -669,12 +669,9 @@ class TransactionV5(TransactionBase):
         return ret
 
 class TransactionV6(TransactionV5):
-    def init_header(self, consensus_branch_id, rand):
-        # Common Transaction Fields
+    def __init__(self, rand, consensus_branch_id):
+        super().__init__(rand, consensus_branch_id)
         self.nVersionGroupId = V6_VERSION_GROUP_ID
-        self.nConsensusBranchId = consensus_branch_id
-        self.nLockTime = rand.u32()
-        self.nExpiryHeight = rand.u32() % TX_EXPIRY_HEIGHT_THRESHOLD
         self.zip233Amount = 0
 
     def version_bytes(self):
