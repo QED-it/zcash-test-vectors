@@ -361,9 +361,19 @@ def generate_sighashes_and_txin(tx, t_inputs, rand, is_zsa=False):
         txin = None
 
     from .ironwood_zsa.digests import signature_digest_zsa
-    sighash_shielded = signature_digest_zsa(tx, t_inputs, SIGHASH_ALL, None) if is_zsa else signature_digest(tx, t_inputs, SIGHASH_ALL, None)
+
+    if is_zsa:
+        sighash_shielded = signature_digest_zsa(tx, t_inputs, SIGHASH_ALL, None)
+    else:
+        sighash_shielded = signature_digest(tx, t_inputs, SIGHASH_ALL, None)
+
     other_sighashes = {
-        nHashType: None if txin is None else signature_digest_zsa(tx, t_inputs, nHashType, txin) if is_zsa else signature_digest(tx, t_inputs, nHashType, txin)
+        nHashType: (
+            None if txin is None else (
+                signature_digest_zsa(tx, t_inputs, nHashType, txin) if is_zsa
+                else signature_digest(tx, t_inputs, nHashType, txin)
+            )
+        )
         for nHashType in ([
             SIGHASH_ALL,
             SIGHASH_NONE,
