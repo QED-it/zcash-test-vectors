@@ -4,14 +4,15 @@ from zcash_test_vectors.bip340_reference import schnorr_sign
 from zcash_test_vectors.ironwood_zsa.issuance_auth_sig import encode_issue_auth_sig
 from zcash_test_vectors.zip_0143 import SIGHASH_ALL
 from .orchard.key_components import FullViewingKey, SpendingKey
-from .orchard.pallas import Point
+from .orchard.pallas import Fp as PallasBase, Point
 from .ironwood_zsa.key_components import IssuanceKeys, ZSA_BIP340_SIG_SCHEME
-from .ironwood_zsa.digests import NU7_VERSION_GROUP_ID, NU7_TX_VERSION_BYTES, signature_digest_zsa
+from .ironwood_zsa.digests import NUZSA_VERSION_GROUP_ID, NUZSA_TX_VERSION_BYTES, signature_digest_zsa
 from .ironwood_zsa.asset_base import zsa_value_base, asset_digest, encode_asset_id, get_random_unicode_bytes, asset_desc_digest
+from .utils import leos2ip
 from .zc_utils import write_compact_size
 from .transaction import (
-    NOTEENCRYPTION_AUTH_BYTES, ZC_SAPLING_ENCPLAINTEXT_SIZE,
-    OrchardActionBase, TransactionBase,
+    MAX_MONEY, NOTEENCRYPTION_AUTH_BYTES, ZC_SAPLING_ENCPLAINTEXT_SIZE,
+    OrchardActionBase, RedPallasSignature, TransactionBase,
 )
 from .zip_0244 import rand_gen, populate_test_vector, generate_test_vectors, TransparentInput
 
@@ -62,6 +63,9 @@ class IssueActionDescription(object):
         for _ in range(rand.u8() % 5):
             self.vNotes.append(IssueNoteDescription(rand))
         self.flagsIssuance = rand.u8() & 1  # Only one bit is reserved for the finalize flag currently
+        if len(self.vNotes) == 0:
+            # The only time we can have no IssueNotes in an IssueAction is when the finalize flag is being set.
+            self.flagsIssuance = 1
 
     def __bytes__(self):
         ret = b''
@@ -95,7 +99,7 @@ class IssueNoteDescription(object):
 
 
 class ActionGroupDescription(object):
-    def __init__(self, rand, anchor_ironwood, is_coinbase, have_burn, sighash_info):
+    def __init__(self, rand, anchor_ironwood, is_coinbase, need_spends, needs_outputs, have_burn, sighash_info):
         self.vActionsIronwood = []
         # There must always be a non-zero number of Action Descriptions in an Action Group.
         for _ in range(rand.u8() % 4 + 1):
@@ -110,6 +114,11 @@ class ActionGroupDescription(object):
             # In coinbase transactions, enableSpends and enableZSA MUST be 0, so set enableOutputs = 1
             # and keep the drawn enableCrossAddress.
             self.flagsIronwood = (self.flagsIronwood & 0b100) | 0b010
+        else:
+            if need_spends:
+                self.flagsIronwood |= 0b001
+            if needs_outputs:
+                self.flagsIronwood |= 0b010
         self.anchorIronwood = anchor_ironwood
         self.nAGExpiryHeight = 0
 
@@ -151,6 +160,19 @@ class ActionGroupDescription(object):
 
 class TransactionZSA(TransactionBase):
     def __init__(self, rand, consensus_branch_id, sighash_info, have_ironwood_zsa=True, have_burn=True, have_issuance=True):
+        # Decide which transaction parts will be generated.
+        flip_coins = rand.u8()
+        have_transparent_in = (flip_coins >> 0) % 2
+        have_transparent_out = (flip_coins >> 1) % 2
+        is_coinbase = (not have_transparent_in) and (flip_coins >> 4) % 2
+
+        if have_burn | have_issuance:
+            is_coinbase = False # We cannot have burns or issuance in a coinbase transaction.
+
+        if not have_ironwood_zsa:
+            # Without IronwoodZSA, we must have transparent inputs (unless coinbase) and transparent outputs.
+            have_transparent_in = not is_coinbase
+            have_transparent_out = True
 
         # We cannot have burns without an IronwoodZSA bundle.
         assert have_ironwood_zsa or not have_burn
@@ -158,35 +180,29 @@ class TransactionZSA(TransactionBase):
         # We cannot have issuance without an IronwoodZSA bundle.
         assert have_ironwood_zsa or not have_issuance
 
-        # All Transparent, Sapling, Orchard and part of the Ironwood Transaction Fields are initialized in the super
-        # class.
-        super().__init__(rand, have_ironwood_zsa)
-        if have_ironwood_zsa:
-            # The base class draws proofsIronwood only to keep the rand stream stable;
-            # IronwoodZSA proofs live per Action Group, so drop the stale attribute.
-            del self.proofsIronwood
-        self.vSighashInfo = [sighash_info] * len(self.vin)
-        for desc in self.vSpendsSapling:
-            desc.spendAuthSigInfo = sighash_info
-        for desc in self.vActionsOrchard:
-            desc.spendAuthSigInfo = sighash_info
-        if hasattr(self, "bindingSigSapling"):
-            self.bindingSigSaplingInfo = sighash_info
-        if hasattr(self, "bindingSigOrchard"):
-            self.bindingSigOrchardInfo = sighash_info
-        if hasattr(self, "bindingSigIronwood"):
-            self.bindingSigIronwoodInfo = sighash_info
+        # The Header and Transparent Fields are initialized in the super class.
+        super().__init__(rand, have_transparent_in, have_transparent_out, is_coinbase)
+
+        self.vSighashInfo = [sighash_info] * len(self.vin) # Transparent SighashInfo
 
 
-    # Common Transaction Fields
-        self.nVersionGroupId = NU7_VERSION_GROUP_ID
+        # Common Transaction Fields
+        self.nVersionGroupId = NUZSA_VERSION_GROUP_ID
         self.nConsensusBranchId = consensus_branch_id
 
         # IronwoodZSA Transaction Fields
         self.vActionGroupsIronwood = []
         if have_ironwood_zsa:
+            self.valueBalanceIronwood = rand.u64() % (MAX_MONEY + 1)
+            self.anchorIronwood = PallasBase(leos2ip(rand.b(32)))
+            self.bindingSigIronwood = RedPallasSignature(rand)
+            self.bindingSigIronwoodInfo = sighash_info
             # For ZSA (pre-Swaps) we have a maximum of one Action Group.
-            self.vActionGroupsIronwood.append(ActionGroupDescription(rand, self.anchorIronwood, self.is_coinbase(), have_burn, sighash_info))
+            self.vActionGroupsIronwood.append(ActionGroupDescription(rand, self.anchorIronwood, self.is_coinbase(), len(self.vin) == 0, len(self.vout) == 0, have_burn, sighash_info))
+        else:
+            # If valueBalanceIronwood is not present in the serialized transaction, then
+            # v^balanceIronwood is defined to be 0.
+            self.valueBalanceIronwood = 0
 
         # IronwoodZSA Issuance Fields
         self.vIssueActions = []
@@ -210,41 +226,13 @@ class TransactionZSA(TransactionBase):
 
     @staticmethod
     def version_bytes():
-        return NU7_TX_VERSION_BYTES
+        return NUZSA_TX_VERSION_BYTES
 
     def transparent_sighash_info_bytes(self):
         ret = b''
         for sighash_info in self.vSighashInfo:
             ret += write_compact_size(len(sighash_info))
             ret += bytes(sighash_info)
-        return ret
-
-    def sapling_spend_auth_sig_bytes(self, desc):
-        ret = b''
-        ret += write_compact_size(len(desc.spendAuthSigInfo))
-        ret += bytes(desc.spendAuthSigInfo)
-        ret += bytes(desc.spendAuthSig)
-        return ret
-
-    def sapling_binding_sig_bytes(self):
-        ret = b''
-        ret += write_compact_size(len(self.bindingSigSaplingInfo))
-        ret += bytes(self.bindingSigSaplingInfo)
-        ret += bytes(self.bindingSigSapling)
-        return ret
-
-    def orchard_spend_auth_sig_bytes(self, desc):
-        ret = b''
-        ret += write_compact_size(len(desc.spendAuthSigInfo))
-        ret += bytes(desc.spendAuthSigInfo)
-        ret += bytes(desc.spendAuthSig)
-        return ret
-
-    def orchard_binding_sig_bytes(self):
-        ret = b''
-        ret += write_compact_size(len(self.bindingSigOrchardInfo))
-        ret += bytes(self.bindingSigOrchardInfo)
-        ret += bytes(self.bindingSigOrchard)
         return ret
 
     def issuance_field_bytes(self):
@@ -265,7 +253,7 @@ class TransactionZSA(TransactionBase):
     def __bytes__(self):
         ret = b''
 
-        # Common Transaction Fields
+        # Header and Transparent Transaction Fields
         ret += super().to_bytes(self.version_bytes(), self.nVersionGroupId, self.nConsensusBranchId)
 
         # IronwoodZSA Transaction Fields
