@@ -598,6 +598,12 @@ class TransactionV5(TransactionBase):
 
         super().__init__(rand, have_transparent_in, have_transparent_out, is_coinbase)
         self.init_sapling(rand, have_sapling, is_coinbase)
+
+        # Satisfy consensus rules that require at least one input and at least one output.
+        if (not (is_coinbase or have_transparent_in or have_sapling)
+                or not (have_transparent_out or have_sapling)):
+            have_orchard = True
+
         self.init_orchard(rand, have_orchard, is_coinbase)
 
         # Common Transaction Fields
